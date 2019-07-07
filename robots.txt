@@ -1,0 +1,2 @@
+User-agent: *
+Sitemap: https://fatih.sahin.dev/sitemap.xml

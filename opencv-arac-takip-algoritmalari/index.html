@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta http-equiv="content-type" content="text/html; charset=utf-8">
+
+  <!-- Enable responsiveness on mobile devices-->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
+
+  <title>
+Meanshift,Camshift ve Optical Flow algoritmaları  - FATİH ŞAHİN
+</title>
+
+  <!-- CSS -->
+  <link rel="stylesheet" href="https:&#x2F;&#x2F;fatih.sahin.dev&#x2F;app.css">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Fira+Mono|Material+Icons">
+
+  
+
+  
+  
+</head>
+
+<body>
+  <div id="app" class="container p-md-5">
+    <nav class="navbar navbar-expand-lg navbar-dark">
+      <a class="navbar-brand mb-0 h1" href="/">FATİH ŞAHİN</a>
+      <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarMenu"
+        aria-controls="navbarMenu" aria-expanded="false" aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="navbarMenu">
+        <div class="navbar-nav mr-auto">
+          <a class="nav-item nav-link" href="/page/hakkimda">Hakkımda</a>
+        </div>
+        <!-- <div class="navbar-nav">
+          <a class="nav-item nav-link" href="en">English</a>
+          <a class="nav-item nav-link" href="tr">Türkçe</a>
+        </div> -->
+      </div>
+    </nav>
+
+    <main class="p-3 main-content">
+      
+<h1 class="pt-3">Meanshift,Camshift ve Optical Flow algoritmaları </h1>
+<span class="dates">26.06.2019</span>
+<div class="pt-3 post-content">
+  <p><strong>1)Meanshift</strong></p>
+<p>Meanshift'te temel olarak size küçük bir pencere verilir ve bu pencereyi maksimum piksel yoğunluğuna sahip alana taşımak gerekmektedir.</p>
+<p>İlk olarak  az nokta sayısına sahip veya  düşük piksel yoğunluğuna sahip(belli bölgelerde daha yoğun) bir daire düşünelim.Bu dairenin orta noktasına &quot;r&quot; diyelim.</p>
+<p>Bu dairenin yanında dairenin içinden daha fazla nokta yerleştirelim ve belli bölgelerde daha fazla yoğunlukta bulunduralım.</p>
+<p>Bu dairenin içindeki noktaların ağırlık merkezini bulmak istersek, &quot;r&quot; den  daha farklı bir merkez elde ederiz(x).Öyleyse penceremizi, merkezi &quot;x&quot; olacak şekilde hareket ettirelim.</p>
+<p>Önceki dairemizin dışındaki noktaları da düşünürsek, ağırlık merkezimiz &quot;x&quot; de olmayacaktır.O zaman yine yeni merkezimizi bulacak şekilde penceremizi hareket ettirelim.</p>
+<p>Yineleme işlemine devam edersek, pencerenin merkezi ve orta noktası aynı yere (veya istenen küçük bir hatayla) düşer. Nihayet elde ettiğiniz şey maksimum piksel dağılımına sahip bir pencere olur.</p>
+<p>Sonuç olarak, meanshift algoritması penceremizi maksimum yoğunluğa sahip yeni konuma taşır.</p>
+<p>Bu şekilde elde edilen görüntü üzerinde bir araç veya nesne hareket ettikçe takip edilebilir.</p>
+<p>Bunun için OpenCV'de <code>cv2.inRange()</code> fonksiyonu kullanılır.</p>
+<p><strong>Örnek kod:</strong></p>
+<pre style="background-color:#0f1419;">
+<span style="color:#ff7733;">import </span><span style="color:#bfbab0;">numpy </span><span style="color:#ff7733;">as </span><span style="color:#bfbab0;">np</span><span style="color:#bfbab0;">
+</span><span style="color:#ff7733;">import </span><span style="color:#bfbab0;">cv2</span><span style="color:#bfbab0;">
+</span><span style="color:#bfbab0;">
+cap </span><span style="color:#f29668;">= </span><span style="color:#bfbab0;">cv2</span><span style="color:#f29668;">.</span><span style="color:#ffb454;">VideoCapture</span><span style="color:#bfbab0;">(</span><span style="color:#c2d94c;">&#39;slow.flv&#39;</span><span style="color:#bfbab0;">)</span><span style="color:#bfbab0;">
+</span><span style="color:#bfbab0;">
+</span><span style="font-style:italic;color:#5c6773;">#Videonun ilk karesini al</span><span style="font-style:italic;color:#5c6773;">
+</span><span style="color:#bfbab0;">ret,frame </span><span style="color:#f29668;">= </span><span style="color:#bfbab0;">cap</span><span style="color:#f29668;">.</span><span style="color:#ffb454;">read</span><span style="color:#bfbab0;">()</span><span style="color:#bfbab0;">
+</span><span style="color:#bfbab0;">
+</span><span style="font-style:italic;color:#5c6773;">#Pencerenin başlangıç konumunu ayarla</span><span style="font-style:italic;color:#5c6773;">
+</span><span style="color:#bfbab0;">r,h,c,w </span><span style="color:#f29668;">= </span><span style="color:#f29718;">250</span><span style="color:#bfbab0;">,</span><span style="color:#f29718;">90</span><span style="color:#bfbab0;">,</span><span style="color:#f29718;">400</span><span style="color:#bfbab0;">,</span><span style="color:#f29718;">125  </span><span style="font-style:italic;color:#5c6773;"># simply hardcoded the values</span><span style="font-style:italic;color:#5c6773;">
+</span><span style="color:#bfbab0;">track_window </span><span style="color:#f29668;">= </span><span style="color:#bfbab0;">(c</span><span style="color:#bfbab0cc;">,</span><span style="color:#bfbab0;">r</span><span style="color:#bfbab0cc;">,</span><span style="color:#bfbab0;">w</span><span style="color:#bfbab0cc;">,</span><span style="color:#bfbab0;">h)</span><span style="color:#bfbab0;">
+</span><span style="color:#bfbab0;">
+</span><span style="font-style:italic;color:#5c6773;">#ROI&#39;yi izleme için ayarlama</span><span style="font-style:italic;color:#5c6773;">
+</span><span style="color:#bfbab0;">roi </span><span style="color:#f29668;">= </span><span style="color:#bfbab0;">frame[r</span><span style="color:#bfbab0cc;">:</span><span style="color:#bfbab0;">r</span><span style="color:#f29668;">+</span><span style="color:#bfbab0;">h, c</span><span style="color:#bfbab0cc;">:</span><span style="color:#bfbab0;">c</span><span style="color:#f29668;">+</span><span style="color:#bfbab0;">w]</span><span style="color:#bfbab0;">
+hsv_roi </span><span style="color:#f29668;">=  </span><span style="color:#bfbab0;">cv2</span><span style="color:#f29668;">.</span><span style="color:#ffb454;">cvtColor</span><span style="color:#bfbab0;">(roi</span><span style="color:#bfbab0cc;">, </span><span style="color:#bfbab0;">cv2</span><span style="color:#f29668;">.</span><span style="color:#bfbab0;">COLOR_BGR2HSV)</span><span style="color:#bfbab0;">
+mask </span><span style="color:#f29668;">= </span><span style="color:#bfbab0;">cv2</span><span style="color:#f29668;">.</span><span style="color:#ffb454;">inRange</span><span style="color:#bfbab0;">(hsv_roi</span><span style="color:#bfbab0cc;">, </span><span style="color:#bfbab0;">np</span><span style="color:#f29668;">.</span><span style="color:#ffb454;">array</span><span style="color:#bfbab0;">((</span><span style="color:#f29718;">0</span><span style="color:#bfbab0cc;">., </span><span style="color:#f29718;">60</span><span style="color:#bfbab0cc;">.,</span><span style="color:#f29718;">32</span><span style="color:#bfbab0cc;">.</span><span style="color:#bfbab0;">))</span><span style="color:#bfbab0cc;">, </span><span style="color:#bfbab0;">np</span><span style="color:#f29668;">.</span><span style="color:#ffb454;">array</span><span style="color:#bfbab0;">((</span><span style="color:#f29718;">180</span><span style="color:#bfbab0cc;">.,</span><span style="color:#f29718;">255</span><span style="color:#bfbab0cc;">.,</span><span style="color:#f29718;">255</span><span style="color:#bfbab0cc;">.</span><span style="color:#bfbab0;">)))</span><span style="color:#bfbab0;">
+roi_hist </span><span style="color:#f29668;">= </span><span style="color:#bfbab0;">cv2</span><span style="color:#f29668;">.</span><span style="color:#ffb454;">calcHist</span><span style="color:#bfbab0;">([hsv_roi]</span><span style="color:#bfbab0cc;">,</span><span style="color:#bfbab0;">[</span><span style="color:#f29718;">0</span><span style="color:#bfbab0;">]</span><span style="color:#bfbab0cc;">,</span><span style="color:#bfbab0;">mask</span><span style="color:#bfbab0cc;">,</span><span style="color:#bfbab0;">[</span><span style="color:#f29718;">180</span><span style="color:#bfbab0;">]</span><span style="color:#bfbab0cc;">,</span><span style="color:#bfbab0;">[</span><span style="color:#f29718;">0</span><span style="color:#bfbab0cc;">,</span><span style="color:#f29718;">180</span><span style="color:#bfbab0;">])</span><span style="color:#bfbab0;">
+cv2</span><span style="color:#f29668;">.</span><span style="color:#ffb454;">normalize</span><span style="color:#bfbab0;">(roi_hist</span><span style="color:#bfbab0cc;">,</span><span style="color:#bfbab0;">roi_hist</span><span style="color:#bfbab0cc;">,</span><span style="color:#f29718;">0</span><span style="color:#bfbab0cc;">,</span><span style="color:#f29718;">255</span><span style="color:#bfbab0cc;">,</span><span style="color:#bfbab0;">cv2</span><span style="color:#f29668;">.</span><span style="color:#bfbab0;">NORM_MINMAX)</span><span style="color:#bfbab0;">
+</span><span style="color:#bfbab0;">
+</span><span style="font-style:italic;color:#5c6773;">#Sonlandırma ölçütlerini ayarlayın, 10 yineleme veya en az 1 puan hareket ettirin</span><span style="font-style:italic;color:#5c6773;">
+</span><span style="color:#bfbab0;">term_crit </span><span style="color:#f29668;">= </span><span style="color:#bfbab0;">( cv2</span><span style="color:#f29668;">.</span><span style="color:#bfbab0;">TERM_CRITERIA_EPS </span><span style="color:#f29668;">| </span><span style="color:#bfbab0;">cv2</span><span style="color:#f29668;">.</span><span style="color:#bfbab0;">TERM_CRITERIA_COUNT</span><span style="color:#bfbab0cc;">, </span><span style="color:#f29718;">10</span><span style="color:#bfbab0cc;">, </span><span style="color:#f29718;">1 </span><span style="color:#bfbab0;">)</span><span style="color:#bfbab0;">
+</span><span style="color:#bfbab0;">
+</span><span style="color:#ff7733;">while</span><span style="color:#bfbab0;">(</span><span style="color:#f29718;">1</span><span style="color:#bfbab0;">):</span><span style="color:#bfbab0;">
+    ret ,frame </span><span style="color:#f29668;">= </span><span style="color:#bfbab0;">cap</span><span style="color:#f29668;">.</span><span style="color:#ffb454;">read</span><span style="color:#bfbab0;">()</span><span style="color:#bfbab0;">
+</span><span style="color:#bfbab0;">
+    </span><span style="color:#ff7733;">if </span><span style="color:#bfbab0;">ret </span><span style="color:#f29668;">== </span><span style="color:#f29718;">True</span><span style="color:#bfbab0;">:</span><span style="color:#bfbab0;">
+        hsv </span><span style="color:#f29668;">= </span><span style="color:#bfbab0;">cv2</span><span style="color:#f29668;">.</span><span style="color:#ffb454;">cvtColor</span><span style="color:#bfbab0;">(frame</span><span style="color:#bfbab0cc;">, </span><span style="color:#bfbab0;">cv2</span><span style="color:#f29668;">.</span><span style="color:#bfbab0;">COLOR_BGR2HSV)</span><span style="color:#bfbab0;">
+        dst </span><span style="color:#f29668;">= </span><span style="color:#bfbab0;">cv2</span><span style="color:#f29668;">.</span><span style="color:#ffb454;">calcBackProject</span><span style="color:#bfbab0;">([hsv]</span><span style="color:#bfbab0cc;">,</span><span style="color:#bfbab0;">[</span><span style="color:#f29718;">0</span><span style="color:#bfbab0;">]</span><span style="color:#bfbab0cc;">,</span><span style="color:#bfbab0;">roi_hist</span><span style="color:#bfbab0cc;">,</span><span style="color:#bfbab0;">[</span><span style="color:#f29718;">0</span><span style="color:#bfbab0cc;">,</span><span style="color:#f29718;">180</span><span style="color:#bfbab0;">]</span><span style="color:#bfbab0cc;">,</span><span style="color:#f29718;">1</span><span style="color:#bfbab0;">)</span><span style="color:#bfbab0;">
+</span><span style="color:#bfbab0;">
+        </span><span style="font-style:italic;color:#5c6773;">#Yeni konum almak için araçlar kullanın.</span><span style="font-style:italic;color:#5c6773;">
+        </span><span style="color:#bfbab0;">ret, track_window </span><span style="color:#f29668;">= </span><span style="color:#bfbab0;">cv2</span><span style="color:#f29668;">.</span><span style="color:#ffb454;">meanShift</span><span style="color:#bfbab0;">(dst</span><span style="color:#bfbab0cc;">, </span><span style="color:#bfbab0;">track_window</span><span style="color:#bfbab0cc;">, </span><span style="color:#bfbab0;">term_crit)</span><span style="color:#bfbab0;">
+</span><span style="color:#bfbab0;">
+        </span><span style="font-style:italic;color:#5c6773;"># Resmin üzerine çizin.</span><span style="font-style:italic;color:#5c6773;">
+        </span><span style="color:#bfbab0;">x,y,w,h </span><span style="color:#f29668;">= </span><span style="color:#bfbab0;">track_window</span><span style="color:#bfbab0;">
+        img2 </span><span style="color:#f29668;">= </span><span style="color:#bfbab0;">cv2</span><span style="color:#f29668;">.</span><span style="color:#ffb454;">rectangle</span><span style="color:#bfbab0;">(frame</span><span style="color:#bfbab0cc;">, </span><span style="color:#bfbab0;">(x</span><span style="color:#bfbab0cc;">,</span><span style="color:#bfbab0;">y)</span><span style="color:#bfbab0cc;">, </span><span style="color:#bfbab0;">(x</span><span style="color:#f29668;">+</span><span style="color:#bfbab0;">w</span><span style="color:#bfbab0cc;">,</span><span style="color:#bfbab0;">y</span><span style="color:#f29668;">+</span><span style="color:#bfbab0;">h)</span><span style="color:#bfbab0cc;">, </span><span style="color:#f29718;">255</span><span style="color:#bfbab0cc;">,</span><span style="color:#f29718;">2</span><span style="color:#bfbab0;">)</span><span style="color:#bfbab0;">
+        cv2</span><span style="color:#f29668;">.</span><span style="color:#ffb454;">imshow</span><span style="color:#bfbab0;">(</span><span style="color:#c2d94c;">&#39;img2&#39;</span><span style="color:#bfbab0cc;">,</span><span style="color:#bfbab0;">img2)</span><span style="color:#bfbab0;">
+</span><span style="color:#bfbab0;">
+        k </span><span style="color:#f29668;">= </span><span style="color:#bfbab0;">cv2</span><span style="color:#f29668;">.</span><span style="color:#ffb454;">waitKey</span><span style="color:#bfbab0;">(</span><span style="color:#f29718;">60</span><span style="color:#bfbab0;">) </span><span style="color:#f29668;">&amp; </span><span style="color:#f29718;">0xff</span><span style="color:#bfbab0;">
+        </span><span style="color:#ff7733;">if </span><span style="color:#bfbab0;">k </span><span style="color:#f29668;">== </span><span style="color:#f29718;">27</span><span style="color:#bfbab0;">:</span><span style="color:#bfbab0;">
+            </span><span style="color:#ff7733;">break</span><span style="color:#bfbab0;">
+        </span><span style="color:#ff7733;">else</span><span style="color:#bfbab0;">:</span><span style="color:#bfbab0;">
+            cv2</span><span style="color:#f29668;">.</span><span style="color:#ffb454;">imwrite</span><span style="color:#bfbab0;">(</span><span style="color:#f07178;">chr</span><span style="color:#bfbab0;">(k)</span><span style="color:#f29668;">+</span><span style="color:#c2d94c;">&quot;.jpg&quot;</span><span style="color:#bfbab0cc;">,</span><span style="color:#bfbab0;">img2)</span><span style="color:#bfbab0;">
+</span><span style="color:#bfbab0;">
+    </span><span style="color:#ff7733;">else</span><span style="color:#bfbab0;">:</span><span style="color:#bfbab0;">
+        </span><span style="color:#ff7733;">break</span><span style="color:#bfbab0;">
+</span><span style="color:#bfbab0;">
+cv2</span><span style="color:#f29668;">.</span><span style="color:#ffb454;">destroyAllWindows</span><span style="color:#bfbab0;">()</span><span style="color:#bfbab0;">
+cap</span><span style="color:#f29668;">.</span><span style="color:#ffb454;">release</span><span style="color:#bfbab0;">()</span><span style="color:#bfbab0;">
+</span></pre>
+<p><strong>2)Camshift</strong></p>
+<p>Meanshift algoritmasında örnek olarak yol üzerinden geçen arabaların tespitinde arabalar uzaktayken penceremiz her zaman aynı boyutta,dolayısıyla pencere her zaman kameraya çok yakın durumda yer alır.</p>
+<p>Pencere boyutunu hedefin boyutuna ve rotasyonuna göre uyarlamamız gerekiyor.</p>
+<p>Bu sorunu gidermek için  <strong>“Sürekli Uyarlamalı Meanshift(CAMshift (Continuously Adaptive Meanshift))”</strong> geliştirildi.</p>
+<p>İlk önce Meanshift uygulanır.</p>
+<p>Araçlar bir kez yaklaştığında, pencerenin boyutunu <strong>s = 2 \ times \ sqrt {\ frac {M_ {00}} {256}}</strong> şeklinde günceller.</p>
+<p>Ayrıca ona en uygun elipsin oryantasyonunu da hesaplar.</p>
+<p>Yine, yeni ölçeklenmiş pencere ve önceki pencere konumu ile araç geçişini uygular.</p>
+<p>Gerekli doğruluk sağlanana kadar işlem devam eder.</p>
+<p><strong>Örnek kod:</strong></p>
+<pre style="background-color:#0f1419;">
+<span style="color:#ff7733;">import </span><span style="color:#bfbab0;">numpy </span><span style="color:#ff7733;">as </span><span style="color:#bfbab0;">np</span><span style="color:#bfbab0;">
+</span><span style="color:#ff7733;">import </span><span style="color:#bfbab0;">cv2</span><span style="color:#bfbab0;">
+</span><span style="color:#bfbab0;">
+cap </span><span style="color:#f29668;">= </span><span style="color:#bfbab0;">cv2</span><span style="color:#f29668;">.</span><span style="color:#ffb454;">VideoCapture</span><span style="color:#bfbab0;">(</span><span style="color:#c2d94c;">&#39;slow.flv&#39;</span><span style="color:#bfbab0;">)</span><span style="color:#bfbab0;">
+</span><span style="color:#bfbab0;">
+</span><span style="font-style:italic;color:#5c6773;">#Videonun ilk karesini al</span><span style="font-style:italic;color:#5c6773;">
+</span><span style="color:#bfbab0;">ret,frame </span><span style="color:#f29668;">= </span><span style="color:#bfbab0;">cap</span><span style="color:#f29668;">.</span><span style="color:#ffb454;">read</span><span style="color:#bfbab0;">()</span><span style="color:#bfbab0;">
+</span><span style="color:#bfbab0;">
+</span><span style="font-style:italic;color:#5c6773;">#Pencerenin başlangıç konumunu ayarla</span><span style="font-style:italic;color:#5c6773;">
+</span><span style="color:#bfbab0;">r,h,c,w </span><span style="color:#f29668;">= </span><span style="color:#f29718;">250</span><span style="color:#bfbab0;">,</span><span style="color:#f29718;">90</span><span style="color:#bfbab0;">,</span><span style="color:#f29718;">400</span><span style="color:#bfbab0;">,</span><span style="color:#f29718;">125  </span><span style="font-style:italic;color:#5c6773;"># simply hardcoded the values</span><span style="font-style:italic;color:#5c6773;">
+</span><span style="color:#bfbab0;">track_window </span><span style="color:#f29668;">= </span><span style="color:#bfbab0;">(c</span><span style="color:#bfbab0cc;">,</span><span style="color:#bfbab0;">r</span><span style="color:#bfbab0cc;">,</span><span style="color:#bfbab0;">w</span><span style="color:#bfbab0cc;">,</span><span style="color:#bfbab0;">h)</span><span style="color:#bfbab0;">
+</span><span style="color:#bfbab0;">
+</span><span style="font-style:italic;color:#5c6773;">#ROI&#39;yi izleme için ayarlama</span><span style="font-style:italic;color:#5c6773;">
+</span><span style="color:#bfbab0;">roi </span><span style="color:#f29668;">= </span><span style="color:#bfbab0;">frame[r</span><span style="color:#bfbab0cc;">:</span><span style="color:#bfbab0;">r</span><span style="color:#f29668;">+</span><span style="color:#bfbab0;">h, c</span><span style="color:#bfbab0cc;">:</span><span style="color:#bfbab0;">c</span><span style="color:#f29668;">+</span><span style="color:#bfbab0;">w]</span><span style="color:#bfbab0;">
+hsv_roi </span><span style="color:#f29668;">=  </span><span style="color:#bfbab0;">cv2</span><span style="color:#f29668;">.</span><span style="color:#ffb454;">cvtColor</span><span style="color:#bfbab0;">(roi</span><span style="color:#bfbab0cc;">, </span><span style="color:#bfbab0;">cv2</span><span style="color:#f29668;">.</span><span style="color:#bfbab0;">COLOR_BGR2HSV)</span><span style="color:#bfbab0;">
+mask </span><span style="color:#f29668;">= </span><span style="color:#bfbab0;">cv2</span><span style="color:#f29668;">.</span><span style="color:#ffb454;">inRange</span><span style="color:#bfbab0;">(hsv_roi</span><span style="color:#bfbab0cc;">, </span><span style="color:#bfbab0;">np</span><span style="color:#f29668;">.</span><span style="color:#ffb454;">array</span><span style="color:#bfbab0;">((</span><span style="color:#f29718;">0</span><span style="color:#bfbab0cc;">., </span><span style="color:#f29718;">60</span><span style="color:#bfbab0cc;">.,</span><span style="color:#f29718;">32</span><span style="color:#bfbab0cc;">.</span><span style="color:#bfbab0;">))</span><span style="color:#bfbab0cc;">, </span><span style="color:#bfbab0;">np</span><span style="color:#f29668;">.</span><span style="color:#ffb454;">array</span><span style="color:#bfbab0;">((</span><span style="color:#f29718;">180</span><span style="color:#bfbab0cc;">.,</span><span style="color:#f29718;">255</span><span style="color:#bfbab0cc;">.,</span><span style="color:#f29718;">255</span><span style="color:#bfbab0cc;">.</span><span style="color:#bfbab0;">)))</span><span style="color:#bfbab0;">
+roi_hist </span><span style="color:#f29668;">= </span><span style="color:#bfbab0;">cv2</span><span style="color:#f29668;">.</span><span style="color:#ffb454;">calcHist</span><span style="color:#bfbab0;">([hsv_roi]</span><span style="color:#bfbab0cc;">,</span><span style="color:#bfbab0;">[</span><span style="color:#f29718;">0</span><span style="color:#bfbab0;">]</span><span style="color:#bfbab0cc;">,</span><span style="color:#bfbab0;">mask</span><span style="color:#bfbab0cc;">,</span><span style="color:#bfbab0;">[</span><span style="color:#f29718;">180</span><span style="color:#bfbab0;">]</span><span style="color:#bfbab0cc;">,</span><span style="color:#bfbab0;">[</span><span style="color:#f29718;">0</span><span style="color:#bfbab0cc;">,</span><span style="color:#f29718;">180</span><span style="color:#bfbab0;">])</span><span style="color:#bfbab0;">
+cv2</span><span style="color:#f29668;">.</span><span style="color:#ffb454;">normalize</span><span style="color:#bfbab0;">(roi_hist</span><span style="color:#bfbab0cc;">,</span><span style="color:#bfbab0;">roi_hist</span><span style="color:#bfbab0cc;">,</span><span style="color:#f29718;">0</span><span style="color:#bfbab0cc;">,</span><span style="color:#f29718;">255</span><span style="color:#bfbab0cc;">,</span><span style="color:#bfbab0;">cv2</span><span style="color:#f29668;">.</span><span style="color:#bfbab0;">NORM_MINMAX)</span><span style="color:#bfbab0;">
+</span><span style="color:#bfbab0;">
+</span><span style="font-style:italic;color:#5c6773;">#Sonlandırma ölçütlerini ayarlayın, 10 yineleme veya en az 1 puan hareket ettirin</span><span style="font-style:italic;color:#5c6773;">
+</span><span style="color:#bfbab0;">term_crit </span><span style="color:#f29668;">= </span><span style="color:#bfbab0;">( cv2</span><span style="color:#f29668;">.</span><span style="color:#bfbab0;">TERM_CRITERIA_EPS </span><span style="color:#f29668;">| </span><span style="color:#bfbab0;">cv2</span><span style="color:#f29668;">.</span><span style="color:#bfbab0;">TERM_CRITERIA_COUNT</span><span style="color:#bfbab0cc;">, </span><span style="color:#f29718;">10</span><span style="color:#bfbab0cc;">, </span><span style="color:#f29718;">1 </span><span style="color:#bfbab0;">)</span><span style="color:#bfbab0;">
+</span><span style="color:#bfbab0;">
+</span><span style="color:#ff7733;">while</span><span style="color:#bfbab0;">(</span><span style="color:#f29718;">1</span><span style="color:#bfbab0;">):</span><span style="color:#bfbab0;">
+    ret ,frame </span><span style="color:#f29668;">= </span><span style="color:#bfbab0;">cap</span><span style="color:#f29668;">.</span><span style="color:#ffb454;">read</span><span style="color:#bfbab0;">()</span><span style="color:#bfbab0;">
+</span><span style="color:#bfbab0;">
+    </span><span style="color:#ff7733;">if </span><span style="color:#bfbab0;">ret </span><span style="color:#f29668;">== </span><span style="color:#f29718;">True</span><span style="color:#bfbab0;">:</span><span style="color:#bfbab0;">
+        hsv </span><span style="color:#f29668;">= </span><span style="color:#bfbab0;">cv2</span><span style="color:#f29668;">.</span><span style="color:#ffb454;">cvtColor</span><span style="color:#bfbab0;">(frame</span><span style="color:#bfbab0cc;">, </span><span style="color:#bfbab0;">cv2</span><span style="color:#f29668;">.</span><span style="color:#bfbab0;">COLOR_BGR2HSV)</span><span style="color:#bfbab0;">
+        dst </span><span style="color:#f29668;">= </span><span style="color:#bfbab0;">cv2</span><span style="color:#f29668;">.</span><span style="color:#ffb454;">calcBackProject</span><span style="color:#bfbab0;">([hsv]</span><span style="color:#bfbab0cc;">,</span><span style="color:#bfbab0;">[</span><span style="color:#f29718;">0</span><span style="color:#bfbab0;">]</span><span style="color:#bfbab0cc;">,</span><span style="color:#bfbab0;">roi_hist</span><span style="color:#bfbab0cc;">,</span><span style="color:#bfbab0;">[</span><span style="color:#f29718;">0</span><span style="color:#bfbab0cc;">,</span><span style="color:#f29718;">180</span><span style="color:#bfbab0;">]</span><span style="color:#bfbab0cc;">,</span><span style="color:#f29718;">1</span><span style="color:#bfbab0;">)</span><span style="color:#bfbab0;">
+</span><span style="color:#bfbab0;">
+        </span><span style="font-style:italic;color:#5c6773;">#Yeni konum almak için araçlar kullanın</span><span style="font-style:italic;color:#5c6773;">
+        </span><span style="color:#bfbab0;">ret, track_window </span><span style="color:#f29668;">= </span><span style="color:#bfbab0;">cv2</span><span style="color:#f29668;">.</span><span style="color:#ffb454;">CamShift</span><span style="color:#bfbab0;">(dst</span><span style="color:#bfbab0cc;">, </span><span style="color:#bfbab0;">track_window</span><span style="color:#bfbab0cc;">, </span><span style="color:#bfbab0;">term_crit)</span><span style="color:#bfbab0;">
+</span><span style="color:#bfbab0;">
+        </span><span style="font-style:italic;color:#5c6773;"># Resmin üzerine çizin</span><span style="font-style:italic;color:#5c6773;">
+        </span><span style="color:#bfbab0;">pts </span><span style="color:#f29668;">= </span><span style="color:#bfbab0;">cv2</span><span style="color:#f29668;">.</span><span style="color:#ffb454;">boxPoints</span><span style="color:#bfbab0;">(ret)</span><span style="color:#bfbab0;">
+        pts </span><span style="color:#f29668;">= </span><span style="color:#bfbab0;">np</span><span style="color:#f29668;">.</span><span style="color:#ffb454;">int0</span><span style="color:#bfbab0;">(pts)</span><span style="color:#bfbab0;">
+        img2 </span><span style="color:#f29668;">= </span><span style="color:#bfbab0;">cv2</span><span style="color:#f29668;">.</span><span style="color:#ffb454;">polylines</span><span style="color:#bfbab0;">(frame</span><span style="color:#bfbab0cc;">,</span><span style="color:#bfbab0;">[pts]</span><span style="color:#bfbab0cc;">,</span><span style="color:#f29718;">True</span><span style="color:#bfbab0cc;">, </span><span style="color:#f29718;">255</span><span style="color:#bfbab0cc;">,</span><span style="color:#f29718;">2</span><span style="color:#bfbab0;">)</span><span style="color:#bfbab0;">
+        cv2</span><span style="color:#f29668;">.</span><span style="color:#ffb454;">imshow</span><span style="color:#bfbab0;">(</span><span style="color:#c2d94c;">&#39;img2&#39;</span><span style="color:#bfbab0cc;">,</span><span style="color:#bfbab0;">img2)</span><span style="color:#bfbab0;">
+</span><span style="color:#bfbab0;">
+        k </span><span style="color:#f29668;">= </span><span style="color:#bfbab0;">cv2</span><span style="color:#f29668;">.</span><span style="color:#ffb454;">waitKey</span><span style="color:#bfbab0;">(</span><span style="color:#f29718;">60</span><span style="color:#bfbab0;">) </span><span style="color:#f29668;">&amp; </span><span style="color:#f29718;">0xff</span><span style="color:#bfbab0;">
+        </span><span style="color:#ff7733;">if </span><span style="color:#bfbab0;">k </span><span style="color:#f29668;">== </span><span style="color:#f29718;">27</span><span style="color:#bfbab0;">:</span><span style="color:#bfbab0;">
+            </span><span style="color:#ff7733;">break</span><span style="color:#bfbab0;">
+        </span><span style="color:#ff7733;">else</span><span style="color:#bfbab0;">:</span><span style="color:#bfbab0;">
+            cv2</span><span style="color:#f29668;">.</span><span style="color:#ffb454;">imwrite</span><span style="color:#bfbab0;">(</span><span style="color:#f07178;">chr</span><span style="color:#bfbab0;">(k)</span><span style="color:#f29668;">+</span><span style="color:#c2d94c;">&quot;.jpg&quot;</span><span style="color:#bfbab0cc;">,</span><span style="color:#bfbab0;">img2)</span><span style="color:#bfbab0;">
+</span><span style="color:#bfbab0;">
+    </span><span style="color:#ff7733;">else</span><span style="color:#bfbab0;">:</span><span style="color:#bfbab0;">
+        </span><span style="color:#ff7733;">break</span><span style="color:#bfbab0;">
+</span><span style="color:#bfbab0;">
+cv2</span><span style="color:#f29668;">.</span><span style="color:#ffb454;">destroyAllWindows</span><span style="color:#bfbab0;">()</span><span style="color:#bfbab0;">
+cap</span><span style="color:#f29668;">.</span><span style="color:#ffb454;">release</span><span style="color:#bfbab0;">()</span><span style="color:#bfbab0;">
+</span></pre>
+<p><strong>3)Optical Flow</strong></p>
+<p>Optik akış, nesnenin veya kameranın hareket etmesinin neden olduğu art arda gelen iki kare arasında görüntü nesnelerinin görünür hareket biçimidir.</p>
+<p>Her vektörün noktalarının ilk kareden diğerine hareketini gösteren bir yer değiştirme vektörü olduğu vektör 2B vektör alanıdır.</p>
+<p>Bir nesnenin piksel yoğunluğu ardışık kareler arasında değişmez.</p>
+<p>Komşu pikseller benzer hareketlere sahiptir. </p>
+<p>Optik akış, birçok alanda uygulamaya sahiptir:Video sıkıştırma,Video Sabitleme vb.</p>
+<p>İlk karede bir piksel düşünelim (I (x, y, t)).Yeni bir boyut eklendiği zaman buraya eklenir.Daha önce sadece görüntüler üzerinden hareket ediyorduk, zamana gerek yoktu.</p>
+<p>Fakat burada zaman da önemli.Dt süresinden sonra bir sonraki karede uzaklık (dx, dy) ile hareket eder. </p>
+<p><strong>I(x,y,t) = I(x+dx, y+dy, t+dt)</strong></p>
+<p>Ardından yukarıdaki eşitliğin sağ tarafındaki denklemin taylor serisi ile yaklaşımını alalım, ortak terimleri kaldırıp ve dt ile bölünce, fx ve fy cinsinden ifadeler ortaya çıkar.</p>
+<p>Bu denklemler Optik Akış denklemini oluşturur.Ft cinsinden oluşan denklem ise zaman içindeki gradyandır.</p>
+<p>Bu denklemleri bilinmeyen iki değişkenle çözemiyoruz. Bu sorunu çözmek için çeşitli yöntemler sağlanmış ve bunlardan biri Lucas-Kanade.</p>
+<p>Daha önce tüm komşu piksellerin benzer hareketlere sahip olacağı varsayımını gördük.</p>
+<p>Lucas-Kanade yöntemi nokta etrafında 3x3 matris alır. Yani tüm eleman için aynı harekete sahip olarak kabul eder. Bu 9 eleman için (fx, fy, ft) bulabiliriz.</p>
+<p>Şimdi bizim sorunumuz, aşırı kararlı olan iki bilinmeyen değişkenli 9 denklemi çözmek olur.</p>
+<p>En küçük karelere uydurma yöntemiyle bu sorun çözülebilir. </p>
+<p>Böylece buradaki fikir basit olarak, takip edilemesi gereken bazı noktalar var ve bu noktaların optik akış vektörlerini alıyoruz.</p>
+<p>OpenCv üzerinde bunların hepsini <code>cv2.calcOpticalFlowPyrLK()</code> ile yapabiliyoruz.</p>
+<p>Noktalara karar vermek için <code>cv2.goodFeaturesToTrack()</code> kullanıyoruz.</p>
+<p>İlk kareyi alıyoruz, içinde bazı Shi-Tomasi köşe noktalarını tespit ediyoruz, ardından Lucas-Kanade optik akışını kullanarak bu noktaları yinelemeli olarak izliyoruz.</p>
+<p><strong>Örnek kod:</strong></p>
+<pre style="background-color:#0f1419;">
+<span style="color:#ff7733;">import </span><span style="color:#bfbab0;">numpy </span><span style="color:#ff7733;">as </span><span style="color:#bfbab0;">np</span><span style="color:#bfbab0;">
+</span><span style="color:#ff7733;">import </span><span style="color:#bfbab0;">cv2</span><span style="color:#bfbab0;">
+</span><span style="color:#bfbab0;">
+cap </span><span style="color:#f29668;">= </span><span style="color:#bfbab0;">cv2</span><span style="color:#f29668;">.</span><span style="color:#ffb454;">VideoCapture</span><span style="color:#bfbab0;">(</span><span style="color:#c2d94c;">&#39;slow.flv&#39;</span><span style="color:#bfbab0;">)</span><span style="color:#bfbab0;">
+</span><span style="color:#bfbab0;">
+</span><span style="font-style:italic;color:#5c6773;">#ShiTomasi köşe tespiti için parametreler</span><span style="font-style:italic;color:#5c6773;">
+</span><span style="color:#bfbab0;">feature_params </span><span style="color:#f29668;">= </span><span style="font-style:italic;color:#39bae6;">dict</span><span style="color:#bfbab0;">( </span><span style="color:#f29718;">maxCorners </span><span style="color:#f29668;">= </span><span style="color:#f29718;">100</span><span style="color:#bfbab0cc;">,</span><span style="color:#bfbab0;">
+                       </span><span style="color:#f29718;">qualityLevel </span><span style="color:#f29668;">= </span><span style="color:#f29718;">0</span><span style="color:#bfbab0cc;">.</span><span style="color:#f29718;">3</span><span style="color:#bfbab0cc;">,</span><span style="color:#bfbab0;">
+                       </span><span style="color:#f29718;">minDistance </span><span style="color:#f29668;">= </span><span style="color:#f29718;">7</span><span style="color:#bfbab0cc;">,</span><span style="color:#bfbab0;">
+                       </span><span style="color:#f29718;">blockSize </span><span style="color:#f29668;">= </span><span style="color:#f29718;">7 </span><span style="color:#bfbab0;">)</span><span style="color:#bfbab0;">
+</span><span style="color:#bfbab0;">
+</span><span style="font-style:italic;color:#5c6773;">#Lucas kanade optik akış için parametreler</span><span style="font-style:italic;color:#5c6773;">
+</span><span style="color:#bfbab0;">lk_params </span><span style="color:#f29668;">= </span><span style="font-style:italic;color:#39bae6;">dict</span><span style="color:#bfbab0;">( </span><span style="color:#f29718;">winSize  </span><span style="color:#f29668;">= </span><span style="color:#bfbab0;">(</span><span style="color:#f29718;">15</span><span style="color:#bfbab0cc;">,</span><span style="color:#f29718;">15</span><span style="color:#bfbab0;">)</span><span style="color:#bfbab0cc;">,</span><span style="color:#bfbab0;">
+                  </span><span style="color:#f29718;">maxLevel </span><span style="color:#f29668;">= </span><span style="color:#f29718;">2</span><span style="color:#bfbab0cc;">,</span><span style="color:#bfbab0;">
+                  </span><span style="color:#f29718;">criteria </span><span style="color:#f29668;">= </span><span style="color:#bfbab0;">(cv2</span><span style="color:#f29668;">.</span><span style="color:#bfbab0;">TERM_CRITERIA_EPS </span><span style="color:#f29668;">| </span><span style="color:#bfbab0;">cv2</span><span style="color:#f29668;">.</span><span style="color:#bfbab0;">TERM_CRITERIA_COUNT</span><span style="color:#bfbab0cc;">, </span><span style="color:#f29718;">10</span><span style="color:#bfbab0cc;">, </span><span style="color:#f29718;">0</span><span style="color:#bfbab0cc;">.</span><span style="color:#f29718;">03</span><span style="color:#bfbab0;">))</span><span style="color:#bfbab0;">
+</span><span style="color:#bfbab0;">
+</span><span style="font-style:italic;color:#5c6773;">#Bazı rastgele renkler oluşturuyoruz</span><span style="font-style:italic;color:#5c6773;">
+</span><span style="color:#bfbab0;">color </span><span style="color:#f29668;">= </span><span style="color:#bfbab0;">np</span><span style="color:#f29668;">.</span><span style="color:#bfbab0;">random</span><span style="color:#f29668;">.</span><span style="color:#ffb454;">randint</span><span style="color:#bfbab0;">(</span><span style="color:#f29718;">0</span><span style="color:#bfbab0cc;">,</span><span style="color:#f29718;">255</span><span style="color:#bfbab0cc;">,</span><span style="color:#bfbab0;">(</span><span style="color:#f29718;">100</span><span style="color:#bfbab0cc;">,</span><span style="color:#f29718;">3</span><span style="color:#bfbab0;">))</span><span style="color:#bfbab0;">
+</span><span style="color:#bfbab0;">
+</span><span style="font-style:italic;color:#5c6773;">#İlk kareyi alıp ve içindeki köşeleri buluyoruz.</span><span style="font-style:italic;color:#5c6773;">
+</span><span style="color:#bfbab0;">ret, old_frame </span><span style="color:#f29668;">= </span><span style="color:#bfbab0;">cap</span><span style="color:#f29668;">.</span><span style="color:#ffb454;">read</span><span style="color:#bfbab0;">()</span><span style="color:#bfbab0;">
+old_gray </span><span style="color:#f29668;">= </span><span style="color:#bfbab0;">cv2</span><span style="color:#f29668;">.</span><span style="color:#ffb454;">cvtColor</span><span style="color:#bfbab0;">(old_frame</span><span style="color:#bfbab0cc;">, </span><span style="color:#bfbab0;">cv2</span><span style="color:#f29668;">.</span><span style="color:#bfbab0;">COLOR_BGR2GRAY)</span><span style="color:#bfbab0;">
+p0 </span><span style="color:#f29668;">= </span><span style="color:#bfbab0;">cv2</span><span style="color:#f29668;">.</span><span style="color:#ffb454;">goodFeaturesToTrack</span><span style="color:#bfbab0;">(old_gray</span><span style="color:#bfbab0cc;">, </span><span style="color:#f29718;">mask </span><span style="color:#f29668;">= </span><span style="color:#f29718;">None</span><span style="color:#bfbab0cc;">, </span><span style="color:#f29668;">**</span><span style="color:#bfbab0;">feature_params)</span><span style="color:#bfbab0;">
+</span><span style="color:#bfbab0;">
+</span><span style="font-style:italic;color:#5c6773;">#Çizim amaçlı bir maske görüntüsü oluşturuyoruz.</span><span style="font-style:italic;color:#5c6773;">
+</span><span style="color:#bfbab0;">mask </span><span style="color:#f29668;">= </span><span style="color:#bfbab0;">np</span><span style="color:#f29668;">.</span><span style="color:#ffb454;">zeros_like</span><span style="color:#bfbab0;">(old_frame)</span><span style="color:#bfbab0;">
+</span><span style="color:#bfbab0;">
+</span><span style="color:#ff7733;">while</span><span style="color:#bfbab0;">(</span><span style="color:#f29718;">1</span><span style="color:#bfbab0;">):</span><span style="color:#bfbab0;">
+    ret,frame </span><span style="color:#f29668;">= </span><span style="color:#bfbab0;">cap</span><span style="color:#f29668;">.</span><span style="color:#ffb454;">read</span><span style="color:#bfbab0;">()</span><span style="color:#bfbab0;">
+    frame_gray </span><span style="color:#f29668;">= </span><span style="color:#bfbab0;">cv2</span><span style="color:#f29668;">.</span><span style="color:#ffb454;">cvtColor</span><span style="color:#bfbab0;">(frame</span><span style="color:#bfbab0cc;">, </span><span style="color:#bfbab0;">cv2</span><span style="color:#f29668;">.</span><span style="color:#bfbab0;">COLOR_BGR2GRAY)</span><span style="color:#bfbab0;">
+</span><span style="color:#bfbab0;">
+    </span><span style="font-style:italic;color:#5c6773;">#Optik akışı hesaplıyoruz.</span><span style="font-style:italic;color:#5c6773;">
+    </span><span style="color:#bfbab0;">p1, st, err </span><span style="color:#f29668;">= </span><span style="color:#bfbab0;">cv2</span><span style="color:#f29668;">.</span><span style="color:#ffb454;">calcOpticalFlowPyrLK</span><span style="color:#bfbab0;">(old_gray</span><span style="color:#bfbab0cc;">, </span><span style="color:#bfbab0;">frame_gray</span><span style="color:#bfbab0cc;">, </span><span style="color:#bfbab0;">p0</span><span style="color:#bfbab0cc;">, </span><span style="color:#f29718;">None</span><span style="color:#bfbab0cc;">, </span><span style="color:#f29668;">**</span><span style="color:#bfbab0;">lk_params)</span><span style="color:#bfbab0;">
+</span><span style="color:#bfbab0;">
+    </span><span style="font-style:italic;color:#5c6773;">#Noktaları seçiyoruz.</span><span style="font-style:italic;color:#5c6773;">
+    </span><span style="color:#bfbab0;">good_new </span><span style="color:#f29668;">= </span><span style="color:#bfbab0;">p1[st</span><span style="color:#f29668;">==</span><span style="color:#f29718;">1</span><span style="color:#bfbab0;">]</span><span style="color:#bfbab0;">
+    good_old </span><span style="color:#f29668;">= </span><span style="color:#bfbab0;">p0[st</span><span style="color:#f29668;">==</span><span style="color:#f29718;">1</span><span style="color:#bfbab0;">]</span><span style="color:#bfbab0;">
+</span><span style="color:#bfbab0;">
+    </span><span style="font-style:italic;color:#5c6773;">#izleri çizmek için:</span><span style="font-style:italic;color:#5c6773;">
+    </span><span style="color:#ff7733;">for </span><span style="color:#bfbab0;">i</span><span style="color:#bfbab0cc;">,</span><span style="color:#bfbab0;">(new</span><span style="color:#bfbab0cc;">,</span><span style="color:#bfbab0;">old) </span><span style="color:#ff7733;">in </span><span style="color:#f07178;">enumerate</span><span style="color:#bfbab0;">(</span><span style="color:#f07178;">zip</span><span style="color:#bfbab0;">(good_new</span><span style="color:#bfbab0cc;">,</span><span style="color:#bfbab0;">good_old)):</span><span style="color:#bfbab0;">
+        a,b </span><span style="color:#f29668;">= </span><span style="color:#bfbab0;">new</span><span style="color:#f29668;">.</span><span style="color:#ffb454;">ravel</span><span style="color:#bfbab0;">()</span><span style="color:#bfbab0;">
+        c,d </span><span style="color:#f29668;">= </span><span style="color:#bfbab0;">old</span><span style="color:#f29668;">.</span><span style="color:#ffb454;">ravel</span><span style="color:#bfbab0;">()</span><span style="color:#bfbab0;">
+        mask </span><span style="color:#f29668;">= </span><span style="color:#bfbab0;">cv2</span><span style="color:#f29668;">.</span><span style="color:#ffb454;">line</span><span style="color:#bfbab0;">(mask</span><span style="color:#bfbab0cc;">, </span><span style="color:#bfbab0;">(a</span><span style="color:#bfbab0cc;">,</span><span style="color:#bfbab0;">b)</span><span style="color:#bfbab0cc;">,</span><span style="color:#bfbab0;">(c</span><span style="color:#bfbab0cc;">,</span><span style="color:#bfbab0;">d)</span><span style="color:#bfbab0cc;">, </span><span style="color:#bfbab0;">color[i]</span><span style="color:#f29668;">.</span><span style="color:#ffb454;">tolist</span><span style="color:#bfbab0;">()</span><span style="color:#bfbab0cc;">, </span><span style="color:#f29718;">2</span><span style="color:#bfbab0;">)</span><span style="color:#bfbab0;">
+        frame </span><span style="color:#f29668;">= </span><span style="color:#bfbab0;">cv2</span><span style="color:#f29668;">.</span><span style="color:#ffb454;">circle</span><span style="color:#bfbab0;">(frame</span><span style="color:#bfbab0cc;">,</span><span style="color:#bfbab0;">(a</span><span style="color:#bfbab0cc;">,</span><span style="color:#bfbab0;">b)</span><span style="color:#bfbab0cc;">,</span><span style="color:#f29718;">5</span><span style="color:#bfbab0cc;">,</span><span style="color:#bfbab0;">color[i]</span><span style="color:#f29668;">.</span><span style="color:#ffb454;">tolist</span><span style="color:#bfbab0;">()</span><span style="color:#bfbab0cc;">,</span><span style="color:#f29668;">-</span><span style="color:#f29718;">1</span><span style="color:#bfbab0;">)</span><span style="color:#bfbab0;">
+    img </span><span style="color:#f29668;">= </span><span style="color:#bfbab0;">cv2</span><span style="color:#f29668;">.</span><span style="color:#ffb454;">add</span><span style="color:#bfbab0;">(frame</span><span style="color:#bfbab0cc;">,</span><span style="color:#bfbab0;">mask)</span><span style="color:#bfbab0;">
+</span><span style="color:#bfbab0;">
+    cv2</span><span style="color:#f29668;">.</span><span style="color:#ffb454;">imshow</span><span style="color:#bfbab0;">(</span><span style="color:#c2d94c;">&#39;frame&#39;</span><span style="color:#bfbab0cc;">,</span><span style="color:#bfbab0;">img)</span><span style="color:#bfbab0;">
+    k </span><span style="color:#f29668;">= </span><span style="color:#bfbab0;">cv2</span><span style="color:#f29668;">.</span><span style="color:#ffb454;">waitKey</span><span style="color:#bfbab0;">(</span><span style="color:#f29718;">30</span><span style="color:#bfbab0;">) </span><span style="color:#f29668;">&amp; </span><span style="color:#f29718;">0xff</span><span style="color:#bfbab0;">
+    </span><span style="color:#ff7733;">if </span><span style="color:#bfbab0;">k </span><span style="color:#f29668;">== </span><span style="color:#f29718;">27</span><span style="color:#bfbab0;">:</span><span style="color:#bfbab0;">
+        </span><span style="color:#ff7733;">break</span><span style="color:#bfbab0;">
+</span><span style="color:#bfbab0;">
+    </span><span style="font-style:italic;color:#5c6773;">#Burada önceki kareyi ve önceki noktaları güncelleme yapıyoruz.</span><span style="font-style:italic;color:#5c6773;">
+    </span><span style="color:#bfbab0;">old_gray </span><span style="color:#f29668;">= </span><span style="color:#bfbab0;">frame_gray</span><span style="color:#f29668;">.</span><span style="color:#ffb454;">copy</span><span style="color:#bfbab0;">()</span><span style="color:#bfbab0;">
+    p0 </span><span style="color:#f29668;">= </span><span style="color:#bfbab0;">good_new</span><span style="color:#f29668;">.</span><span style="color:#ffb454;">reshape</span><span style="color:#bfbab0;">(</span><span style="color:#f29668;">-</span><span style="color:#f29718;">1</span><span style="color:#bfbab0cc;">,</span><span style="color:#f29718;">1</span><span style="color:#bfbab0cc;">,</span><span style="color:#f29718;">2</span><span style="color:#bfbab0;">)</span><span style="color:#bfbab0;">
+</span><span style="color:#bfbab0;">
+cv2</span><span style="color:#f29668;">.</span><span style="color:#ffb454;">destroyAllWindows</span><span style="color:#bfbab0;">()</span><span style="color:#bfbab0;">
+cap</span><span style="color:#f29668;">.</span><span style="color:#ffb454;">release</span><span style="color:#bfbab0;">()</span><span style="color:#bfbab0;">
+</span></pre>
+</div>
+
+Anahtarlar :
+
+<a href="#"><span class="badge badge-primary">Görüntüİşleme</span></a>
+
+<a href="#"><span class="badge badge-primary">ImageProcessing</span></a>
+
+<a href="#"><span class="badge badge-primary">Meanshift</span></a>
+
+<a href="#"><span class="badge badge-primary">Camshift</span></a>
+
+<a href="#"><span class="badge badge-primary">OpticalFlow</span></a>
+
+<a href="#"><span class="badge badge-primary">Algoritma</span></a>
+
+
+<div class="row pt-3 pb-3">
+  <div class="col-auto mr-auto">
+    
+  </div>
+  <div class="col-auto ml-auto">
+    
+  </div>
+</div>
+<div id="disqus_thread"></div>
+
+    </main>
+  </div>
+</body>
+</html>

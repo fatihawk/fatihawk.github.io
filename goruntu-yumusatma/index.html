@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta http-equiv="content-type" content="text/html; charset=utf-8">
+
+  <!-- Enable responsiveness on mobile devices-->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
+
+  <title>
+Görüntü Yumuşatma İşlemleri - FATİH ŞAHİN
+</title>
+
+  <!-- CSS -->
+  <link rel="stylesheet" href="https:&#x2F;&#x2F;fatih.sahin.dev&#x2F;app.css">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Fira+Mono|Material+Icons">
+
+  
+
+  
+  
+</head>
+
+<body>
+  <div id="app" class="container p-md-5">
+    <nav class="navbar navbar-expand-lg navbar-dark">
+      <a class="navbar-brand mb-0 h1" href="/">FATİH ŞAHİN</a>
+      <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarMenu"
+        aria-controls="navbarMenu" aria-expanded="false" aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="navbarMenu">
+        <div class="navbar-nav mr-auto">
+          <a class="nav-item nav-link" href="/page/hakkimda">Hakkımda</a>
+        </div>
+        <!-- <div class="navbar-nav">
+          <a class="nav-item nav-link" href="en">English</a>
+          <a class="nav-item nav-link" href="tr">Türkçe</a>
+        </div> -->
+      </div>
+    </nav>
+
+    <main class="p-3 main-content">
+      
+<h1 class="pt-3">Görüntü Yumuşatma İşlemleri</h1>
+<span class="dates">15.05.2018</span>
+<div class="pt-3 post-content">
+  <p>Görüntü bulanıklaştırma, görüntüyü düşük geçişli bir filtre çekirdeği ile kıvrılarak elde edilir.</p>
+<p>Gürültü gidermek için kullanışlıdır. Görüntüdeki yüksek frekans içeriğini (gürültü, kenarlar)kaldırır.</p>
+<p>Böylece bu işlemde kenarlar biraz bulanıklaşıyor.Bunları gidermek için daha farklı teknikler var.</p>
+<p>Fakat bu yazıda bunlar tercih edilmedi.</p>
+<p>Başlıca 4 faklı bulanıklaştırma tekniği var.</p>
+<p><strong>1)Averaging</strong></p>
+<p>Bu yöntem, görüntüyü normalize edilmiş bir kutu filtre uygulayarak yapılır.</p>
+<p>Çekirdek (kernel) alanı altındaki tüm piksellerin ortalamasını alır ve merkezi öğeyi değiştirir.</p>
+<p>Bu işlemler için OpenCV'de <code>cv2.blur()</code> veya <code>cv2.boxFilter()</code> fonksiyonları kullanılır.</p>
+<p><strong>Örnek kod:</strong></p>
+<pre style="background-color:#0f1419;">
+<span style="color:#ff7733;">import </span><span style="color:#bfbab0;">cv2</span><span style="color:#bfbab0;">
+</span><span style="color:#ff7733;">import </span><span style="color:#bfbab0;">numpy </span><span style="color:#ff7733;">as </span><span style="color:#bfbab0;">np</span><span style="color:#bfbab0;">
+</span><span style="color:#ff7733;">from </span><span style="color:#bfbab0;">matplotlib </span><span style="color:#ff7733;">import </span><span style="color:#bfbab0;">pyplot </span><span style="color:#ff7733;">as </span><span style="color:#bfbab0;">plt</span><span style="color:#bfbab0;">
+</span><span style="color:#bfbab0;">
+img </span><span style="color:#f29668;">= </span><span style="color:#bfbab0;">cv2</span><span style="color:#f29668;">.</span><span style="color:#ffb454;">imread</span><span style="color:#bfbab0;">(</span><span style="color:#c2d94c;">&#39;opencv_logo.png&#39;</span><span style="color:#bfbab0;">)</span><span style="color:#bfbab0;">
+</span><span style="color:#bfbab0;">
+blur </span><span style="color:#f29668;">= </span><span style="color:#bfbab0;">cv2</span><span style="color:#f29668;">.</span><span style="color:#ffb454;">blur</span><span style="color:#bfbab0;">(img</span><span style="color:#bfbab0cc;">,</span><span style="color:#bfbab0;">(</span><span style="color:#f29718;">5</span><span style="color:#bfbab0cc;">,</span><span style="color:#f29718;">5</span><span style="color:#bfbab0;">))</span><span style="color:#bfbab0;">
+</span><span style="color:#bfbab0;">
+plt</span><span style="color:#f29668;">.</span><span style="color:#ffb454;">subplot</span><span style="color:#bfbab0;">(</span><span style="color:#f29718;">121</span><span style="color:#bfbab0;">),plt</span><span style="color:#f29668;">.</span><span style="color:#ffb454;">imshow</span><span style="color:#bfbab0;">(img),plt</span><span style="color:#f29668;">.</span><span style="color:#ffb454;">title</span><span style="color:#bfbab0;">(</span><span style="color:#c2d94c;">&#39;Original&#39;</span><span style="color:#bfbab0;">)</span><span style="color:#bfbab0;">
+plt</span><span style="color:#f29668;">.</span><span style="color:#ffb454;">xticks</span><span style="color:#bfbab0;">([]), plt</span><span style="color:#f29668;">.</span><span style="color:#ffb454;">yticks</span><span style="color:#bfbab0;">([])</span><span style="color:#bfbab0;">
+plt</span><span style="color:#f29668;">.</span><span style="color:#ffb454;">subplot</span><span style="color:#bfbab0;">(</span><span style="color:#f29718;">122</span><span style="color:#bfbab0;">),plt</span><span style="color:#f29668;">.</span><span style="color:#ffb454;">imshow</span><span style="color:#bfbab0;">(blur),plt</span><span style="color:#f29668;">.</span><span style="color:#ffb454;">title</span><span style="color:#bfbab0;">(</span><span style="color:#c2d94c;">&#39;Blurred&#39;</span><span style="color:#bfbab0;">)</span><span style="color:#bfbab0;">
+plt</span><span style="color:#f29668;">.</span><span style="color:#ffb454;">xticks</span><span style="color:#bfbab0;">([]), plt</span><span style="color:#f29668;">.</span><span style="color:#ffb454;">yticks</span><span style="color:#bfbab0;">([])</span><span style="color:#bfbab0;">
+plt</span><span style="color:#f29668;">.</span><span style="color:#ffb454;">show</span><span style="color:#bfbab0;">()</span><span style="color:#bfbab0;">
+</span></pre>
+<p><strong>2)Gauss Blurring</strong></p>
+<p>Bu kısımda kutu filtre yerine Gauss çekirdeği (kernel) kullanılmıştır.</p>
+<p>Bu işlem için OpenCV'de <code>cv2.GaussianBlur()</code> fonskiyonu kullanılır.</p>
+<p>Burada önemli olan çekirdeğin (kernel) genişliğini ve yüksekliğini belirtmeliyiz.</p>
+<p>Ayrıca standart sapmayı sırasıyla X ve Y yönünde, sigmaX ve sigmaY olarak belirtmeliyiz.</p>
+<p>Yalnızca sigmaX belirtilmişse, sigmaY, sigmaX ile aynı şekilde alınır.</p>
+<p>Her ikisi de sıfır olarak verilirse, bunlar çekirdek boyutundan hesaplanır.</p>
+<p>Gauss bulanıklaştırma, gauss gürültüsünü görüntüden gidermede oldukça etkilidir.</p>
+<p>İstersek, <code>cv2.getGaussianKernel()</code> işleviylede bir Gauss çekirdeği (kernel) oluşturabiliriz.</p>
+<p><strong>Örnek kod:</strong></p>
+<pre style="background-color:#0f1419;">
+<span style="color:#bfbab0;">blur </span><span style="color:#f29668;">= </span><span style="color:#bfbab0;">cv2</span><span style="color:#f29668;">.</span><span style="color:#ffb454;">GaussianBlur</span><span style="color:#bfbab0;">(img</span><span style="color:#bfbab0cc;">,</span><span style="color:#bfbab0;">(</span><span style="color:#f29718;">5</span><span style="color:#bfbab0cc;">,</span><span style="color:#f29718;">5</span><span style="color:#bfbab0;">)</span><span style="color:#bfbab0cc;">,</span><span style="color:#f29718;">0</span><span style="color:#bfbab0;">)</span><span style="color:#bfbab0;">
+</span></pre>
+<p><strong>3)Median Blurring</strong></p>
+<p>Burada kullanılan <code>cv2.medianBlur()</code> fonksiyonu, çekirdek (kernel) alanı altındaki tüm piksellerin ortancasını (median) alır ve merkezi eleman bu ortanca değerle değiştirilir.</p>
+<p>Bu, görüntülerde salt-and-pepper sesini önlemek için oldukça etkilidir.</p>
+<p>İlginç olan ise, yukarıdaki filtrelerde, merkezi elemanın görüntüde bir piksel değeri ya da yeni bir değer olabilecek hesaplanan bir değer olmasıdır.</p>
+<p>Ancak median bulanıklaştırmada, merkezi eleman daima görüntüdeki bazı piksel değerleriyle değiştirilir.</p>
+<p>Bu işlem gürültüyü etkili bir şekilde azaltır.</p>
+<p>Her zaman çekirdek (kernel) büyüklüğü pozitif bir tamsayı olmalıdır.</p>
+<p><strong>Örnek kod:</strong></p>
+<pre style="background-color:#0f1419;">
+<span style="color:#bfbab0;">median </span><span style="color:#f29668;">= </span><span style="color:#bfbab0;">cv2</span><span style="color:#f29668;">.</span><span style="color:#ffb454;">medianBlur</span><span style="color:#bfbab0;">(img</span><span style="color:#bfbab0cc;">,</span><span style="color:#f29718;">5</span><span style="color:#bfbab0;">)</span><span style="color:#bfbab0;">
+</span></pre>
+<p><strong>4)Bilateral Filtering</strong></p>
+<p><code>cv2.bilateralFilter()</code> fonksiyonu,kenarları keskin tutarken gürültünün giderilmesinde oldukça etkilidir.Ancak işlem diğer filtrelere kıyasla daha yavaştır.</p>
+<p>Bu gaussian filtresi, filtreleme sırasında yakınlardaki piksellerin göz önüne alındığı tek başına bir alan işlevidir.</p>
+<p>Piksellerin hemen hemen aynı yoğunluğa sahip olduğuna karar veren bir teknik değildir.</p>
+<p>Pikselin kenar pikseli olup olmadığını bilecek bir yöntem değildir.</p>
+<p>Bu yüzden yapmak istemediğimiz kenarları da bulanıklaştırabilir.</p>
+<p>Bilateral Filtering, uzayda bir gaussian filtre alır, ancak piksel farkının bir fonksiyonu olan bir başka gaussian filtre alır.</p>
+<p>Uzayın Gauss işlevinde, yalnızca yakınlardaki piksellerin bulanıklaştırma için değerlendirilir.</p>
+<p>Yoğunluk farkının Gauss işlevi yalnızca orta piksele benzer yoğunluğu olan piksellerin bulanıklaştırma işlemini gerçekleştirir.</p>
+<p>Bu sayede kenarlardaki piksellerin büyük yoğunluk değişimleri olacağı için kenarları korur.</p>
+<p><strong>Örnek kod:</strong></p>
+<pre style="background-color:#0f1419;">
+<span style="color:#bfbab0;">blur </span><span style="color:#f29668;">= </span><span style="color:#bfbab0;">cv2</span><span style="color:#f29668;">.</span><span style="color:#ffb454;">bilateralFilter</span><span style="color:#bfbab0;">(img</span><span style="color:#bfbab0cc;">,</span><span style="color:#f29718;">9</span><span style="color:#bfbab0cc;">,</span><span style="color:#f29718;">75</span><span style="color:#bfbab0cc;">,</span><span style="color:#f29718;">75</span><span style="color:#bfbab0;">)</span><span style="color:#bfbab0;">
+</span></pre>
+</div>
+
+Anahtarlar :
+
+<a href="#"><span class="badge badge-primary">Averaging</span></a>
+
+<a href="#"><span class="badge badge-primary">GaussBlurring</span></a>
+
+<a href="#"><span class="badge badge-primary">MedianBlurring</span></a>
+
+<a href="#"><span class="badge badge-primary">BilateralFiltering</span></a>
+
+<a href="#"><span class="badge badge-primary">Uygulama</span></a>
+
+
+<div class="row pt-3 pb-3">
+  <div class="col-auto mr-auto">
+    
+  </div>
+  <div class="col-auto ml-auto">
+    
+  </div>
+</div>
+<div id="disqus_thread"></div>
+
+    </main>
+  </div>
+</body>
+</html>

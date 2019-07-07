@@ -1,0 +1,542 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta http-equiv="content-type" content="text/html; charset=utf-8">
+
+  <!-- Enable responsiveness on mobile devices-->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
+
+  <title>
+DHT22 İle MQTT uygulaması - FATİH ŞAHİN
+</title>
+
+  <!-- CSS -->
+  <link rel="stylesheet" href="https:&#x2F;&#x2F;fatih.sahin.dev&#x2F;app.css">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Fira+Mono|Material+Icons">
+
+  
+
+  
+  
+</head>
+
+<body>
+  <div id="app" class="container p-md-5">
+    <nav class="navbar navbar-expand-lg navbar-dark">
+      <a class="navbar-brand mb-0 h1" href="/">FATİH ŞAHİN</a>
+      <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarMenu"
+        aria-controls="navbarMenu" aria-expanded="false" aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="navbarMenu">
+        <div class="navbar-nav mr-auto">
+          <a class="nav-item nav-link" href="/page/hakkimda">Hakkımda</a>
+        </div>
+        <!-- <div class="navbar-nav">
+          <a class="nav-item nav-link" href="en">English</a>
+          <a class="nav-item nav-link" href="tr">Türkçe</a>
+        </div> -->
+      </div>
+    </nav>
+
+    <main class="p-3 main-content">
+      
+<h1 class="pt-3">DHT22 İle MQTT uygulaması</h1>
+<span class="dates">01.11.2018</span>
+<div class="pt-3 post-content">
+  <p>Bu projede, bir DHT22 sensörü ile sıcaklık ve nem değerlerini gösteren bir Raspberry Pi ile bağımsız bir web sunucusu oluşturacağız.</p>
+<p>Ayrıca MQTT protokolünü kullanarak bir ESP8266'dan iki çıkışı kontrol edeceğiz.</p>
+<p>Yapacağım işlemler için Raspberry Pi’de Raspbian işletim sistemini kurdum.</p>
+<p>Sonrasında Raspberry Pi’yi uzaktan kontrol etmek için Putty’i kurarak,Raspberry Pi’nin terminalini kullandım.</p>
+<p>Terminal üzerinde ilk yaptığım işlem ESP8266 ile MQTT protokolünü uygulayabilmek için Mosquitto broker kurdum.</p>
+<p>Bunun için farklı brokerlar kullanılabilir.Ben daha çok tercih edilmesi ve kaynak açısından Eclipse’in Mosquittosunu tercih ettim.</p>
+<p><strong>Kurmak için terminal’e yazdığım kod:</strong></p>
+<pre style="background-color:#0f1419;">
+<span style="color:#ffb454;">pi@raspberry:</span><span style="font-style:italic;color:#39bae6;">~</span><span style="color:#bfbab0;"> $ mosquitto</span><span style="color:#f29718;"> -d</span><span style="color:#bfbab0;">
+</span></pre>
+<p>Raspberry Pi'yi web sunucusuna dönüştürmek için Flask adlı bir Python Mikroframework kullandım.</p>
+<p><strong>Flask'ı yüklemek için pip yüklememiz gerekir. Pi'mizi güncellemek ve pip güncellemek için aşağıdaki komutları çalıştırdım:</strong></p>
+<pre style="background-color:#0f1419;">
+<span style="color:#ffb454;">pi@raspberrypi </span><span style="font-style:italic;color:#39bae6;">~</span><span style="color:#bfbab0;"> $ sudo apt-get update</span><span style="color:#bfbab0;">
+</span><span style="color:#ffb454;">pi@raspberrypi </span><span style="font-style:italic;color:#39bae6;">~</span><span style="color:#bfbab0;"> $ sudo apt-get upgrade</span><span style="color:#bfbab0;">
+</span><span style="color:#ffb454;">pi@raspberrypi </span><span style="font-style:italic;color:#39bae6;">~</span><span style="color:#bfbab0;"> $ sudo apt-get install python-pip python-flask git-core</span><span style="color:#bfbab0;">
+</span></pre>
+<p>Bu proje, Python Flask uygulamamız tarafından eşzamansız olarak güncellenebilen bir Python Flask web sayfası oluşturmamıza olanak veren SocketIO'yu kullanacağız.</p>
+<ul>
+<li>Bu, en son okumaları görmek için web sayfasını yenilememiz gerekmediği anlamına gelir, anında güncellenir. </li>
+</ul>
+<p><strong>Flask SocketIO Python paketini kurmak için aşağıdaki kodu çalıştırdım:</strong></p>
+<pre style="background-color:#0f1419;">
+<span style="color:#ffb454;">pi@raspberrypi </span><span style="font-style:italic;color:#39bae6;">~</span><span style="color:#bfbab0;"> $ sudo pip install flask-socketio</span><span style="color:#bfbab0;">
+</span></pre>
+<p>Sonrasında sıcaklık ve nem değerlerini kontrol etmek için bir tane Pyhton dosyası oluşturacağız.</p>
+<p>Bu dosya ile Web sunucusunu ayarlayıp ve bu düğmelere basıldığında ESP8266'dan bir MQTT mesajı yayınlar. </p>
+<p>Ayrıca okumaları almak için (sıcaklık ve nem  değerleri) MQTT ile abone oluşturacağız.</p>
+<p><strong>Bunun için bir klasör oluşturdum:</strong></p>
+<pre style="background-color:#0f1419;">
+<span style="color:#ffb454;">pi@raspberrypi </span><span style="font-style:italic;color:#39bae6;">~</span><span style="color:#bfbab0;"> $ mkdir web-server</span><span style="color:#bfbab0;">
+</span><span style="color:#ffb454;">pi@raspberrypi </span><span style="font-style:italic;color:#39bae6;">~</span><span style="color:#bfbab0;"> $ cd web-server</span><span style="color:#bfbab0;">
+</span><span style="color:#ffb454;">pi@raspberrypi:</span><span style="font-style:italic;color:#39bae6;">~</span><span style="color:#ffb454;">/web-server</span><span style="color:#bfbab0;"> $</span><span style="color:#bfbab0;">
+</span></pre>
+<p><strong>Sonrasında kodları app.py adında bir dosya oluşturdum:</strong></p>
+<pre style="background-color:#0f1419;">
+<span style="color:#ffb454;">pi@raspberrypi:</span><span style="font-style:italic;color:#39bae6;">~</span><span style="color:#ffb454;">/web-server</span><span style="color:#bfbab0;"> $ nano app.py</span><span style="color:#bfbab0;">
+</span></pre>
+<p><strong>Sonrasında verileri yayınlamak için aşağıdaki kodları app.py’nin içine attım:</strong></p>
+<pre style="background-color:#0f1419;">
+<span style="color:#ff7733;">import </span><span style="color:#bfbab0;">paho</span><span style="color:#f29668;">.</span><span style="color:#bfbab0;">mqtt</span><span style="color:#f29668;">.</span><span style="color:#bfbab0;">client </span><span style="color:#ff7733;">as </span><span style="color:#bfbab0;">mqtt</span><span style="color:#bfbab0;">
+</span><span style="color:#ff7733;">from </span><span style="color:#bfbab0;">flask </span><span style="color:#ff7733;">import </span><span style="color:#bfbab0;">Flask</span><span style="color:#bfbab0cc;">, </span><span style="color:#bfbab0;">render_template</span><span style="color:#bfbab0cc;">, </span><span style="color:#bfbab0;">request</span><span style="color:#bfbab0;">
+</span><span style="color:#ff7733;">from </span><span style="color:#bfbab0;">flask_socketio </span><span style="color:#ff7733;">import </span><span style="color:#bfbab0;">SocketIO</span><span style="color:#bfbab0cc;">, </span><span style="color:#bfbab0;">emit</span><span style="color:#bfbab0;">
+</span><span style="color:#bfbab0;">
+app </span><span style="color:#f29668;">= </span><span style="color:#ffb454;">Flask</span><span style="color:#bfbab0;">(__name__)</span><span style="color:#bfbab0;">
+app</span><span style="color:#f29668;">.</span><span style="color:#bfbab0;">config[</span><span style="color:#c2d94c;">&#39;SECRET_KEY&#39;</span><span style="color:#bfbab0;">] </span><span style="color:#f29668;">= </span><span style="color:#c2d94c;">&#39;secret!&#39;</span><span style="color:#bfbab0;">
+socketio </span><span style="color:#f29668;">= </span><span style="color:#ffb454;">SocketIO</span><span style="color:#bfbab0;">(app)</span><span style="color:#bfbab0;">
+</span><span style="color:#bfbab0;">
+ </span><span style="font-style:italic;color:#5c6773;">#İstemcinin sunucudan bir CONNACK yanıtı aldığı zaman için geri dönüş yapması</span><span style="font-style:italic;color:#5c6773;">
+</span><span style="color:#bfbab0;">
+</span><span style="color:#ff7733;">def </span><span style="color:#ffb454;">on_connect</span><span style="color:#bfbab0;">(</span><span style="color:#f29718;">client</span><span style="color:#bfbab0cc;">, </span><span style="color:#f29718;">userdata</span><span style="color:#bfbab0cc;">, </span><span style="color:#f29718;">flags</span><span style="color:#bfbab0cc;">, </span><span style="color:#f29718;">rc</span><span style="color:#bfbab0;">):</span><span style="color:#bfbab0;">
+    </span><span style="color:#f07178;">print</span><span style="color:#bfbab0;">(</span><span style="color:#c2d94c;">&quot;Connected with result code &quot;</span><span style="color:#f29668;">+</span><span style="font-style:italic;color:#39bae6;">str</span><span style="color:#bfbab0;">(rc))</span><span style="color:#bfbab0;">
+</span><span style="color:#bfbab0;">
+</span><span style="font-style:italic;color:#5c6773;">#On_connect () &#39;de abone ol ve bağlantıyı kaybedersek yeniden bağlan, abonelikleri yenile.  </span><span style="font-style:italic;color:#5c6773;">
+</span><span style="color:#bfbab0;">
+  client</span><span style="color:#f29668;">.</span><span style="color:#ffb454;">subscribe</span><span style="color:#bfbab0;">(</span><span style="color:#c2d94c;">&quot;/esp8266/temperature&quot;</span><span style="color:#bfbab0;">)</span><span style="color:#bfbab0;">
+    client</span><span style="color:#f29668;">.</span><span style="color:#ffb454;">subscribe</span><span style="color:#bfbab0;">(</span><span style="color:#c2d94c;">&quot;/esp8266/humidity&quot;</span><span style="color:#bfbab0;">)</span><span style="color:#bfbab0;">
+</span><span style="color:#bfbab0;">
+</span><span style="font-style:italic;color:#5c6773;">#Bir PUBLISH mesajının ESP8266&#39;dan alındığı zaman geri dönüş yapması.</span><span style="font-style:italic;color:#5c6773;">
+</span><span style="color:#bfbab0;">
+</span><span style="color:#ff7733;">def </span><span style="color:#ffb454;">on_message</span><span style="color:#bfbab0;">(</span><span style="color:#f29718;">client</span><span style="color:#bfbab0cc;">, </span><span style="color:#f29718;">userdata</span><span style="color:#bfbab0cc;">, </span><span style="color:#f29718;">message</span><span style="color:#bfbab0;">):</span><span style="color:#bfbab0;">
+    </span><span style="font-style:italic;color:#5c6773;">#socketio.emit(&#39;my variable&#39;)</span><span style="font-style:italic;color:#5c6773;">
+    </span><span style="color:#f07178;">print</span><span style="color:#bfbab0;">(</span><span style="color:#c2d94c;">&quot;Received message &#39;&quot; </span><span style="color:#f29668;">+ </span><span style="font-style:italic;color:#39bae6;">str</span><span style="color:#bfbab0;">(message</span><span style="color:#f29668;">.</span><span style="color:#bfbab0;">payload) </span><span style="color:#f29668;">+ </span><span style="color:#c2d94c;">&quot;&#39; on topic &#39;&quot;</span><span style="color:#bfbab0;">
+        </span><span style="color:#f29668;">+ </span><span style="color:#bfbab0;">message</span><span style="color:#f29668;">.</span><span style="color:#bfbab0;">topic </span><span style="color:#f29668;">+ </span><span style="color:#c2d94c;">&quot;&#39; with QoS &quot; </span><span style="color:#f29668;">+ </span><span style="font-style:italic;color:#39bae6;">str</span><span style="color:#bfbab0;">(message</span><span style="color:#f29668;">.</span><span style="color:#bfbab0;">qos))</span><span style="color:#bfbab0;">
+    </span><span style="color:#ff7733;">if </span><span style="color:#bfbab0;">message</span><span style="color:#f29668;">.</span><span style="color:#bfbab0;">topic </span><span style="color:#f29668;">== </span><span style="color:#c2d94c;">&quot;/esp8266/temperature&quot;</span><span style="color:#bfbab0;">:</span><span style="color:#bfbab0;">
+        </span><span style="color:#f07178;">print</span><span style="color:#bfbab0;">(</span><span style="color:#c2d94c;">&quot;temperature update&quot;</span><span style="color:#bfbab0;">)</span><span style="color:#bfbab0;">
+        socketio</span><span style="color:#f29668;">.</span><span style="color:#ffb454;">emit</span><span style="color:#bfbab0;">(</span><span style="color:#c2d94c;">&#39;dht_temperature&#39;</span><span style="color:#bfbab0cc;">, </span><span style="color:#bfbab0;">{</span><span style="color:#c2d94c;">&#39;data&#39;</span><span style="color:#bfbab0cc;">: </span><span style="color:#bfbab0;">message</span><span style="color:#f29668;">.</span><span style="color:#bfbab0;">payload})</span><span style="color:#bfbab0;">
+    </span><span style="color:#ff7733;">if </span><span style="color:#bfbab0;">message</span><span style="color:#f29668;">.</span><span style="color:#bfbab0;">topic </span><span style="color:#f29668;">== </span><span style="color:#c2d94c;">&quot;/esp8266/humidity&quot;</span><span style="color:#bfbab0;">:</span><span style="color:#bfbab0;">
+        </span><span style="color:#f07178;">print</span><span style="color:#bfbab0;">(</span><span style="color:#c2d94c;">&quot;humidity update&quot;</span><span style="color:#bfbab0;">)</span><span style="color:#bfbab0;">
+        socketio</span><span style="color:#f29668;">.</span><span style="color:#ffb454;">emit</span><span style="color:#bfbab0;">(</span><span style="color:#c2d94c;">&#39;dht_humidity&#39;</span><span style="color:#bfbab0cc;">, </span><span style="color:#bfbab0;">{</span><span style="color:#c2d94c;">&#39;data&#39;</span><span style="color:#bfbab0cc;">: </span><span style="color:#bfbab0;">message</span><span style="color:#f29668;">.</span><span style="color:#bfbab0;">payload})</span><span style="color:#bfbab0;">
+</span><span style="color:#bfbab0;">
+mqttc</span><span style="color:#f29668;">=</span><span style="color:#bfbab0;">mqtt</span><span style="color:#f29668;">.</span><span style="color:#ffb454;">Client</span><span style="color:#bfbab0;">()</span><span style="color:#bfbab0;">
+mqttc</span><span style="color:#f29668;">.</span><span style="color:#bfbab0;">on_connect </span><span style="color:#f29668;">= </span><span style="color:#bfbab0;">on_connect</span><span style="color:#bfbab0;">
+mqttc</span><span style="color:#f29668;">.</span><span style="color:#bfbab0;">on_message </span><span style="color:#f29668;">= </span><span style="color:#bfbab0;">on_message</span><span style="color:#bfbab0;">
+mqttc</span><span style="color:#f29668;">.</span><span style="color:#ffb454;">connect</span><span style="color:#bfbab0;">(</span><span style="color:#c2d94c;">&quot;localhost&quot;</span><span style="color:#bfbab0cc;">,</span><span style="color:#f29718;">1883</span><span style="color:#bfbab0cc;">,</span><span style="color:#f29718;">60</span><span style="color:#bfbab0;">)</span><span style="color:#bfbab0;">
+mqttc</span><span style="color:#f29668;">.</span><span style="color:#ffb454;">loop_start</span><span style="color:#bfbab0;">()</span><span style="color:#bfbab0;">
+</span><span style="color:#bfbab0;">
+</span><span style="font-style:italic;color:#5c6773;">#Pin numarasını, adını ve pin durumunu saklamak için pinler denen bir değişken oluşturdum:</span><span style="font-style:italic;color:#5c6773;">
+</span><span style="color:#bfbab0;">
+pins </span><span style="color:#f29668;">= </span><span style="color:#bfbab0;">{</span><span style="color:#bfbab0;">
+   </span><span style="color:#f29718;">4 </span><span style="color:#bfbab0cc;">: </span><span style="color:#bfbab0;">{</span><span style="color:#c2d94c;">&#39;name&#39; </span><span style="color:#bfbab0cc;">: </span><span style="color:#c2d94c;">&#39;GPIO 4&#39;</span><span style="color:#bfbab0cc;">, </span><span style="color:#c2d94c;">&#39;board&#39; </span><span style="color:#bfbab0cc;">: </span><span style="color:#c2d94c;">&#39;esp8266&#39;</span><span style="color:#bfbab0cc;">, </span><span style="color:#c2d94c;">&#39;topic&#39; </span><span style="color:#bfbab0cc;">: </span><span style="color:#c2d94c;">&#39;esp8266/4&#39;</span><span style="color:#bfbab0cc;">, </span><span style="color:#c2d94c;">&#39;state&#39; </span><span style="color:#bfbab0cc;">: </span><span style="color:#c2d94c;">&#39;False&#39;</span><span style="color:#bfbab0;">}</span><span style="color:#bfbab0cc;">,</span><span style="color:#bfbab0;">
+   </span><span style="color:#f29718;">5 </span><span style="color:#bfbab0cc;">: </span><span style="color:#bfbab0;">{</span><span style="color:#c2d94c;">&#39;name&#39; </span><span style="color:#bfbab0cc;">: </span><span style="color:#c2d94c;">&#39;GPIO 5&#39;</span><span style="color:#bfbab0cc;">, </span><span style="color:#c2d94c;">&#39;board&#39; </span><span style="color:#bfbab0cc;">: </span><span style="color:#c2d94c;">&#39;esp8266&#39;</span><span style="color:#bfbab0cc;">, </span><span style="color:#c2d94c;">&#39;topic&#39; </span><span style="color:#bfbab0cc;">: </span><span style="color:#c2d94c;">&#39;esp8266/5&#39;</span><span style="color:#bfbab0cc;">, </span><span style="color:#c2d94c;">&#39;state&#39; </span><span style="color:#bfbab0cc;">: </span><span style="color:#c2d94c;">&#39;False&#39;</span><span style="color:#bfbab0;">}</span><span style="color:#bfbab0;">
+   }</span><span style="color:#bfbab0;">
+</span><span style="color:#bfbab0;">
+</span><span style="font-style:italic;color:#5c6773;">#Pin sözlüğünü templateData değişkenine yerleştirdim:</span><span style="font-style:italic;color:#5c6773;">
+</span><span style="color:#bfbab0;">
+templateData </span><span style="color:#f29668;">= </span><span style="color:#bfbab0;">{</span><span style="color:#bfbab0;">
+   </span><span style="color:#c2d94c;">&#39;pins&#39; </span><span style="color:#bfbab0cc;">: </span><span style="color:#bfbab0;">pins</span><span style="color:#bfbab0;">
+   }</span><span style="color:#bfbab0;">
+</span><span style="color:#bfbab0;">
+</span><span style="color:#bfbab0cc;">@</span><span style="color:#bfbab0;">app</span><span style="color:#f29668;">.</span><span style="color:#ffb454;">route</span><span style="color:#bfbab0;">(</span><span style="color:#c2d94c;">&quot;/&quot;</span><span style="color:#bfbab0;">)</span><span style="color:#bfbab0;">
+</span><span style="color:#ff7733;">def </span><span style="color:#ffb454;">main</span><span style="color:#bfbab0;">():</span><span style="color:#bfbab0;">
+</span><span style="color:#bfbab0;">
+   </span><span style="font-style:italic;color:#5c6773;">#template verileri template main.html&#39;ye aktarın ve kullanıcıya döndürdüm.</span><span style="font-style:italic;color:#5c6773;">
+</span><span style="color:#bfbab0;">
+   </span><span style="color:#ff7733;">return </span><span style="color:#ffb454;">render_template</span><span style="color:#bfbab0;">(</span><span style="color:#c2d94c;">&#39;main.html&#39;</span><span style="color:#bfbab0cc;">, </span><span style="color:#f29718;">async_mode</span><span style="color:#f29668;">=</span><span style="color:#bfbab0;">socketio</span><span style="color:#f29668;">.</span><span style="color:#bfbab0;">async_mode</span><span style="color:#bfbab0cc;">, </span><span style="color:#f29668;">**</span><span style="color:#bfbab0;">templateData)</span><span style="color:#bfbab0;">
+</span><span style="color:#bfbab0;">
+</span><span style="font-style:italic;color:#5c6773;">#Aşağıdaki fonksiyon, bir kullanıcı pin numarası ve eylemi içeren bir URL istediğinde gerçekleştirilir:</span><span style="font-style:italic;color:#5c6773;">
+</span><span style="color:#bfbab0;">
+</span><span style="color:#bfbab0;">
+</span><span style="color:#bfbab0cc;">@</span><span style="color:#bfbab0;">app</span><span style="color:#f29668;">.</span><span style="color:#ffb454;">route</span><span style="color:#bfbab0;">(</span><span style="color:#c2d94c;">&quot;/&lt;board&gt;/&lt;changePin&gt;/&lt;action&gt;&quot;</span><span style="color:#bfbab0;">)</span><span style="color:#bfbab0;">
+</span><span style="color:#ff7733;">def </span><span style="color:#ffb454;">action</span><span style="color:#bfbab0;">(</span><span style="color:#f29718;">board</span><span style="color:#bfbab0cc;">, </span><span style="color:#f29718;">changePin</span><span style="color:#bfbab0cc;">, </span><span style="color:#f29718;">action</span><span style="color:#bfbab0;">):</span><span style="color:#bfbab0;">
+</span><span style="color:#bfbab0;">
+   </span><span style="font-style:italic;color:#5c6773;">#Pimi URL&#39;den bir tam sayıya dönüştürdüm:</span><span style="font-style:italic;color:#5c6773;">
+</span><span style="color:#bfbab0;">
+   changePin </span><span style="color:#f29668;">= </span><span style="font-style:italic;color:#39bae6;">int</span><span style="color:#bfbab0;">(changePin)</span><span style="color:#bfbab0;">
+</span><span style="color:#bfbab0;">
+   </span><span style="font-style:italic;color:#5c6773;">#Değiştirilen pin için cihaz adını aldım:</span><span style="font-style:italic;color:#5c6773;">
+</span><span style="color:#bfbab0;">
+   devicePin </span><span style="color:#f29668;">= </span><span style="color:#bfbab0;">pins[changePin][</span><span style="color:#c2d94c;">&#39;name&#39;</span><span style="color:#bfbab0;">]</span><span style="color:#bfbab0;">
+</span><span style="color:#bfbab0;">
+   </span><span style="font-style:italic;color:#5c6773;">#URL&#39;nin işlem kısmı &quot;1&quot; ise, aşağıda girilen kodu yürüt:</span><span style="font-style:italic;color:#5c6773;">
+</span><span style="color:#bfbab0;">
+   </span><span style="color:#ff7733;">if </span><span style="color:#bfbab0;">action </span><span style="color:#f29668;">== </span><span style="color:#c2d94c;">&quot;1&quot; </span><span style="color:#f29668;">and </span><span style="color:#bfbab0;">board </span><span style="color:#f29668;">== </span><span style="color:#c2d94c;">&#39;esp8266&#39;</span><span style="color:#bfbab0;">:</span><span style="color:#bfbab0;">
+      mqttc</span><span style="color:#f29668;">.</span><span style="color:#ffb454;">publish</span><span style="color:#bfbab0;">(pins[changePin][</span><span style="color:#c2d94c;">&#39;topic&#39;</span><span style="color:#bfbab0;">]</span><span style="color:#bfbab0cc;">,</span><span style="color:#c2d94c;">&quot;1&quot;</span><span style="color:#bfbab0;">)</span><span style="color:#bfbab0;">
+      pins[changePin][</span><span style="color:#c2d94c;">&#39;state&#39;</span><span style="color:#bfbab0;">] </span><span style="color:#f29668;">= </span><span style="color:#c2d94c;">&#39;True&#39;</span><span style="color:#bfbab0;">
+   </span><span style="color:#ff7733;">if </span><span style="color:#bfbab0;">action </span><span style="color:#f29668;">== </span><span style="color:#c2d94c;">&quot;0&quot; </span><span style="color:#f29668;">and </span><span style="color:#bfbab0;">board </span><span style="color:#f29668;">== </span><span style="color:#c2d94c;">&#39;esp8266&#39;</span><span style="color:#bfbab0;">:</span><span style="color:#bfbab0;">
+      mqttc</span><span style="color:#f29668;">.</span><span style="color:#ffb454;">publish</span><span style="color:#bfbab0;">(pins[changePin][</span><span style="color:#c2d94c;">&#39;topic&#39;</span><span style="color:#bfbab0;">]</span><span style="color:#bfbab0cc;">,</span><span style="color:#c2d94c;">&quot;0&quot;</span><span style="color:#bfbab0;">)</span><span style="color:#bfbab0;">
+      pins[changePin][</span><span style="color:#c2d94c;">&#39;state&#39;</span><span style="color:#bfbab0;">] </span><span style="color:#f29668;">= </span><span style="color:#c2d94c;">&#39;False&#39;</span><span style="color:#bfbab0;">
+</span><span style="color:#bfbab0;">
+   </span><span style="font-style:italic;color:#5c6773;">#Pin sözlüğü ile birlikte, mesajı templateData’ya değişkenine yerleştir:</span><span style="font-style:italic;color:#5c6773;">
+</span><span style="color:#bfbab0;">
+   templateData </span><span style="color:#f29668;">= </span><span style="color:#bfbab0;">{</span><span style="color:#bfbab0;">
+      </span><span style="color:#c2d94c;">&#39;pins&#39; </span><span style="color:#bfbab0cc;">: </span><span style="color:#bfbab0;">pins</span><span style="color:#bfbab0;">
+   }</span><span style="color:#bfbab0;">
+   </span><span style="color:#ff7733;">return </span><span style="color:#ffb454;">render_template</span><span style="color:#bfbab0;">(</span><span style="color:#c2d94c;">&#39;main.html&#39;</span><span style="color:#bfbab0cc;">, </span><span style="color:#f29668;">**</span><span style="color:#bfbab0;">templateData)</span><span style="color:#bfbab0;">
+</span><span style="color:#bfbab0;">
+</span><span style="color:#bfbab0cc;">@</span><span style="color:#bfbab0;">socketio</span><span style="color:#f29668;">.</span><span style="color:#ffb454;">on</span><span style="color:#bfbab0;">(</span><span style="color:#c2d94c;">&#39;my event&#39;</span><span style="color:#bfbab0;">)</span><span style="color:#bfbab0;">
+</span><span style="color:#ff7733;">def </span><span style="color:#ffb454;">handle_my_custom_event</span><span style="color:#bfbab0;">(</span><span style="color:#f29718;">json</span><span style="color:#bfbab0;">):</span><span style="color:#bfbab0;">
+    </span><span style="color:#f07178;">print</span><span style="color:#bfbab0;">(</span><span style="color:#c2d94c;">&#39;received json data here: &#39; </span><span style="color:#f29668;">+ </span><span style="font-style:italic;color:#39bae6;">str</span><span style="color:#bfbab0;">(json))</span><span style="color:#bfbab0;">
+</span><span style="color:#bfbab0;">
+</span><span style="color:#ff7733;">if </span><span style="color:#bfbab0;">__name__ </span><span style="color:#f29668;">== </span><span style="color:#c2d94c;">&quot;__main__&quot;</span><span style="color:#bfbab0;">:</span><span style="color:#bfbab0;">
+   socketio</span><span style="color:#f29668;">.</span><span style="color:#ffb454;">run</span><span style="color:#bfbab0;">(app</span><span style="color:#bfbab0cc;">, </span><span style="color:#f29718;">host</span><span style="color:#f29668;">=</span><span style="color:#c2d94c;">&#39;0.0.0.0&#39;</span><span style="color:#bfbab0cc;">, </span><span style="color:#f29718;">port</span><span style="color:#f29668;">=</span><span style="color:#f29718;">8181</span><span style="color:#bfbab0cc;">, </span><span style="color:#f29718;">debug</span><span style="color:#f29668;">=</span><span style="color:#f29718;">True</span><span style="color:#bfbab0;">)</span><span style="color:#bfbab0;">
+</span></pre>
+<p>Python scriptimizden ayrılan HTML etiketlerinin tutulması, projemizin nasıl organize edildiğidir. </p>
+<p>Flask, Python scriptimizden dinamik dosyamıza HTML dosyasını göndermek için kullanabileceğimiz bir Jinja2 adında bir şablon motoru kullanır.</p>
+<p><strong>Template adı verilen yeni bir klasör oluşturdum:</strong></p>
+<pre style="background-color:#0f1419;">
+<span style="color:#ffb454;">pi@raspberrypi:</span><span style="font-style:italic;color:#39bae6;">~</span><span style="color:#ffb454;">/web-server</span><span style="color:#bfbab0;"> $ mkdir templates</span><span style="color:#bfbab0;">
+</span><span style="color:#ffb454;">pi@raspberrypi:</span><span style="font-style:italic;color:#39bae6;">~</span><span style="color:#ffb454;">/web-server</span><span style="color:#bfbab0;"> $ cd templates</span><span style="color:#bfbab0;">
+</span><span style="color:#ffb454;">pi@raspberrypi:</span><span style="font-style:italic;color:#39bae6;">~</span><span style="color:#ffb454;">/web-server/templates</span><span style="color:#bfbab0;"> $</span><span style="color:#bfbab0;">
+</span></pre>
+<p><strong>Sonrasında main.html adında bir HTML dosyası oluşturdum:</strong></p>
+<pre style="background-color:#0f1419;">
+<span style="color:#ffb454;">pi@raspberrypi:</span><span style="font-style:italic;color:#39bae6;">~</span><span style="color:#ffb454;">/web-server/templates</span><span style="color:#bfbab0;"> $ nano main.html</span><span style="color:#bfbab0;">
+</span></pre>
+<p><strong>Bu dosyanın içine aşağıdaki kodları attım:</strong></p>
+<pre style="background-color:#0f1419;">
+<span style="color:#39bae690;">&lt;!</span><span style="color:#59c2ff;">DOCTYPE</span><span style="color:#39bae6;"> html</span><span style="color:#39bae690;">&gt;</span><span style="color:#bfbab0;">
+</span><span style="color:#bfbab0;">
+</span><span style="color:#39bae690;">&lt;</span><span style="color:#59c2ff;">head</span><span style="color:#39bae690;">&gt;</span><span style="color:#bfbab0;">
+   </span><span style="color:#39bae690;">&lt;</span><span style="color:#59c2ff;">title</span><span style="color:#39bae690;">&gt;</span><span style="color:#bfbab0;">RPi Web Server</span><span style="color:#39bae690;">&lt;/</span><span style="color:#59c2ff;">title</span><span style="color:#39bae690;">&gt;</span><span style="color:#bfbab0;">
+   </span><span style="font-style:italic;color:#5c6773;">&lt;!-- Latest compiled and minified CSS --&gt;</span><span style="color:#bfbab0;">
+   </span><span style="color:#39bae690;">&lt;</span><span style="color:#59c2ff;">link </span><span style="color:#ffb454;">rel</span><span style="color:#bfbab0cc;">=</span><span style="color:#c2d94c;">&quot;stylesheet&quot; </span><span style="color:#ffb454;">href</span><span style="color:#bfbab0cc;">=</span><span style="color:#c2d94c;">&quot;https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css&quot; </span><span style="color:#ffb454;">integrity</span><span style="color:#bfbab0cc;">=</span><span style="color:#c2d94c;">&quot;sha384-1q8mTJOASx8j1Au+a5WDVnPi2lkFfwwEAa8hDDdjZlpLegxhjVME1fgjWPGmkzs7&quot; </span><span style="color:#ffb454;">crossorigin</span><span style="color:#bfbab0cc;">=</span><span style="color:#c2d94c;">&quot;anonymous&quot;</span><span style="color:#39bae690;">&gt;</span><span style="color:#bfbab0;">
+   </span><span style="font-style:italic;color:#5c6773;">&lt;!-- Optional theme --&gt;</span><span style="color:#bfbab0;">
+   </span><span style="color:#39bae690;">&lt;</span><span style="color:#59c2ff;">link </span><span style="color:#ffb454;">rel</span><span style="color:#bfbab0cc;">=</span><span style="color:#c2d94c;">&quot;stylesheet&quot; </span><span style="color:#ffb454;">href</span><span style="color:#bfbab0cc;">=</span><span style="color:#c2d94c;">&quot;https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap-theme.min.css&quot; </span><span style="color:#ffb454;">integrity</span><span style="color:#bfbab0cc;">=</span><span style="color:#c2d94c;">&quot;sha384-fLW2N01lMqjakBkx3l/M9EahuwpSfeNvV63J5ezn3uZzapT0u7EYsXMjQV+0En5r&quot; </span><span style="color:#ffb454;">crossorigin</span><span style="color:#bfbab0cc;">=</span><span style="color:#c2d94c;">&quot;anonymous&quot;</span><span style="color:#39bae690;">&gt;</span><span style="color:#bfbab0;">
+   </span><span style="font-style:italic;color:#5c6773;">&lt;!-- Latest compiled and minified JavaScript --&gt;</span><span style="color:#bfbab0;">
+   </span><span style="color:#39bae690;">&lt;</span><span style="color:#59c2ff;">script </span><span style="color:#ffb454;">src</span><span style="color:#bfbab0cc;">=</span><span style="color:#c2d94c;">&quot;https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/js/bootstrap.min.js&quot; </span><span style="color:#ffb454;">integrity</span><span style="color:#bfbab0cc;">=</span><span style="color:#c2d94c;">&quot;sha384-0mSbJDEHialfmuBBQP6A4Qrprq5OVfW37PRR3j5ELqxss1yVqOtnepnHVP9aJ7xS&quot; </span><span style="color:#ffb454;">crossorigin</span><span style="color:#bfbab0cc;">=</span><span style="color:#c2d94c;">&quot;anonymous&quot;</span><span style="color:#39bae690;">&gt;&lt;/</span><span style="color:#59c2ff;">script</span><span style="color:#39bae690;">&gt;</span><span style="color:#bfbab0;">
+   </span><span style="color:#39bae690;">&lt;</span><span style="color:#59c2ff;">script </span><span style="color:#ffb454;">src</span><span style="color:#bfbab0cc;">=</span><span style="color:#c2d94c;">&quot;https://code.jquery.com/jquery-3.1.1.min.js&quot; </span><span style="color:#ffb454;">integrity</span><span style="color:#bfbab0cc;">=</span><span style="color:#c2d94c;">&quot;sha256-hVVnYaiADRTO2PzUGmuLJr8BLUSjGIZsDYGmIJLv2b8=&quot; </span><span style="color:#ffb454;">crossorigin</span><span style="color:#bfbab0cc;">=</span><span style="color:#c2d94c;">&quot;anonymous&quot;</span><span style="color:#39bae690;">&gt;&lt;/</span><span style="color:#59c2ff;">script</span><span style="color:#39bae690;">&gt;</span><span style="color:#bfbab0;">
+   </span><span style="color:#39bae690;">&lt;</span><span style="color:#59c2ff;">meta </span><span style="color:#ffb454;">name</span><span style="color:#bfbab0cc;">=</span><span style="color:#c2d94c;">&quot;viewport&quot; </span><span style="color:#ffb454;">content</span><span style="color:#bfbab0cc;">=</span><span style="color:#c2d94c;">&quot;width=device-width, initial-scale=1&quot;</span><span style="color:#39bae690;">&gt;</span><span style="color:#bfbab0;">
+   </span><span style="color:#39bae690;">&lt;</span><span style="color:#59c2ff;">script </span><span style="color:#ffb454;">type</span><span style="color:#bfbab0cc;">=</span><span style="color:#c2d94c;">&quot;text/javascript&quot; </span><span style="color:#ffb454;">src</span><span style="color:#bfbab0cc;">=</span><span style="color:#c2d94c;">&quot;//cdnjs.cloudflare.com/ajax/libs/socket.io/1.3.6/socket.io.min.js&quot;</span><span style="color:#39bae690;">&gt;&lt;/</span><span style="color:#59c2ff;">script</span><span style="color:#39bae690;">&gt;</span><span style="color:#bfbab0;">
+   </span><span style="color:#39bae690;">&lt;</span><span style="color:#59c2ff;">script </span><span style="color:#ffb454;">type</span><span style="color:#bfbab0cc;">=</span><span style="color:#c2d94c;">&quot;text/javascript&quot; </span><span style="color:#ffb454;">charset</span><span style="color:#bfbab0cc;">=</span><span style="color:#c2d94c;">&quot;utf-8&quot;</span><span style="color:#39bae690;">&gt;</span><span style="color:#bfbab0;">
+      </span><span style="color:#e6b673;">$</span><span style="color:#bfbab0;">(</span><span style="font-style:italic;color:#39bae6;">document</span><span style="color:#bfbab0;">)</span><span style="color:#f29668;">.</span><span style="color:#ffb454;">ready</span><span style="color:#bfbab0;">(</span><span style="color:#ff7733;">function</span><span style="color:#bfbab0;">() {</span><span style="color:#bfbab0;">
+        </span><span style="color:#ff7733;">var </span><span style="color:#bfbab0;">socket </span><span style="color:#f29668;">= </span><span style="color:#bfbab0;">io</span><span style="color:#f29668;">.</span><span style="color:#ffb454;">connect</span><span style="color:#bfbab0;">(</span><span style="color:#c2d94c;">&#39;http://&#39; </span><span style="color:#f29668;">+ </span><span style="font-style:italic;color:#39bae6;">document</span><span style="color:#f29668;">.</span><span style="font-style:italic;color:#f29668;">domain </span><span style="color:#f29668;">+ </span><span style="color:#c2d94c;">&#39;:&#39; </span><span style="color:#f29668;">+ </span><span style="color:#bfbab0;">location</span><span style="color:#f29668;">.</span><span style="color:#bfbab0;">port)</span><span style="color:#bfbab0cc;">;</span><span style="color:#bfbab0;">
+        socket</span><span style="color:#f29668;">.</span><span style="color:#ffb454;">on</span><span style="color:#bfbab0;">(</span><span style="color:#c2d94c;">&#39;connect&#39;</span><span style="color:#bfbab0cc;">, </span><span style="color:#ff7733;">function</span><span style="color:#bfbab0;">() {</span><span style="color:#bfbab0;">
+          socket</span><span style="color:#f29668;">.</span><span style="color:#ffb454;">emit</span><span style="color:#bfbab0;">(</span><span style="color:#c2d94c;">&#39;my event&#39;</span><span style="color:#bfbab0cc;">, </span><span style="color:#bfbab0;">{data</span><span style="color:#bfbab0cc;">: </span><span style="color:#c2d94c;">&#39;I</span><span style="color:#95e6cb;">\&#39;</span><span style="color:#c2d94c;">m connected!&#39;</span><span style="color:#bfbab0;">})</span><span style="color:#bfbab0cc;">;</span><span style="color:#bfbab0;">
+        })</span><span style="color:#bfbab0cc;">;</span><span style="color:#bfbab0;">
+        socket</span><span style="color:#f29668;">.</span><span style="color:#ffb454;">on</span><span style="color:#bfbab0;">(</span><span style="color:#c2d94c;">&#39;dht_temperature&#39;</span><span style="color:#bfbab0cc;">, </span><span style="color:#ff7733;">function</span><span style="color:#bfbab0;">(</span><span style="color:#f29718;">msg</span><span style="color:#bfbab0;">) {</span><span style="color:#bfbab0;">
+          </span><span style="color:#ff7733;">var </span><span style="color:#bfbab0;">nDate </span><span style="color:#f29668;">= </span><span style="color:#ff7733;">new </span><span style="font-style:italic;color:#39bae6;">Date</span><span style="color:#bfbab0;">()</span><span style="color:#bfbab0cc;">;</span><span style="color:#bfbab0;">
+          </span><span style="color:#e6b673;">$</span><span style="color:#bfbab0;">(</span><span style="color:#c2d94c;">&#39;#readingsUpdated&#39;</span><span style="color:#bfbab0;">)</span><span style="color:#f29668;">.</span><span style="color:#ffb454;">text</span><span style="color:#bfbab0;">(nDate</span><span style="color:#f29668;">.</span><span style="color:#ffb454;">getHours</span><span style="color:#bfbab0;">() </span><span style="color:#f29668;">+ </span><span style="color:#c2d94c;">&#39;h:&#39; </span><span style="color:#f29668;">+ </span><span style="color:#bfbab0;">nDate</span><span style="color:#f29668;">.</span><span style="color:#ffb454;">getMinutes</span><span style="color:#bfbab0;">() </span><span style="color:#f29668;">+</span><span style="color:#bfbab0;">
+             </span><span style="color:#c2d94c;">&#39;m:&#39; </span><span style="color:#f29668;">+ </span><span style="color:#bfbab0;">nDate</span><span style="color:#f29668;">.</span><span style="color:#ffb454;">getSeconds</span><span style="color:#bfbab0;">() </span><span style="color:#f29668;">+ </span><span style="color:#c2d94c;">&#39;s&#39;</span><span style="color:#bfbab0;">)</span><span style="color:#f29668;">.</span><span style="color:#ffb454;">html</span><span style="color:#bfbab0;">()</span><span style="color:#bfbab0cc;">;</span><span style="color:#bfbab0;">
+          </span><span style="color:#e6b673;">$</span><span style="color:#bfbab0;">(</span><span style="color:#c2d94c;">&#39;#temperature&#39;</span><span style="color:#bfbab0;">)</span><span style="color:#f29668;">.</span><span style="color:#ffb454;">text</span><span style="color:#bfbab0;">(msg</span><span style="color:#f29668;">.</span><span style="font-style:italic;color:#f29668;">data</span><span style="color:#bfbab0;">)</span><span style="color:#f29668;">.</span><span style="color:#ffb454;">html</span><span style="color:#bfbab0;">()</span><span style="color:#bfbab0cc;">;</span><span style="color:#bfbab0;">
+        })</span><span style="color:#bfbab0cc;">;</span><span style="color:#bfbab0;">
+        socket</span><span style="color:#f29668;">.</span><span style="color:#ffb454;">on</span><span style="color:#bfbab0;">(</span><span style="color:#c2d94c;">&#39;dht_humidity&#39;</span><span style="color:#bfbab0cc;">, </span><span style="color:#ff7733;">function</span><span style="color:#bfbab0;">(</span><span style="color:#f29718;">msg</span><span style="color:#bfbab0;">) {</span><span style="color:#bfbab0;">
+          </span><span style="color:#e6b673;">$</span><span style="color:#bfbab0;">(</span><span style="color:#c2d94c;">&#39;#humidity&#39;</span><span style="color:#bfbab0;">)</span><span style="color:#f29668;">.</span><span style="color:#ffb454;">text</span><span style="color:#bfbab0;">(msg</span><span style="color:#f29668;">.</span><span style="font-style:italic;color:#f29668;">data</span><span style="color:#bfbab0;">)</span><span style="color:#f29668;">.</span><span style="color:#ffb454;">html</span><span style="color:#bfbab0;">()</span><span style="color:#bfbab0cc;">;</span><span style="color:#bfbab0;">
+        })</span><span style="color:#bfbab0cc;">;</span><span style="color:#bfbab0;">
+      })</span><span style="color:#bfbab0cc;">;</span><span style="color:#bfbab0;">
+   </span><span style="color:#39bae690;">&lt;/</span><span style="color:#59c2ff;">script</span><span style="color:#39bae690;">&gt;</span><span style="color:#bfbab0;">
+</span><span style="color:#39bae690;">&lt;/</span><span style="color:#59c2ff;">head</span><span style="color:#39bae690;">&gt;</span><span style="color:#bfbab0;">
+</span><span style="color:#bfbab0;">
+</span><span style="color:#39bae690;">&lt;</span><span style="color:#59c2ff;">body</span><span style="color:#39bae690;">&gt;</span><span style="color:#bfbab0;">
+   </span><span style="color:#39bae690;">&lt;</span><span style="color:#59c2ff;">h1</span><span style="color:#39bae690;">&gt;</span><span style="color:#bfbab0;">RPi Web Server - ESP8266 MQTT</span><span style="color:#39bae690;">&lt;/</span><span style="color:#59c2ff;">h1</span><span style="color:#39bae690;">&gt;</span><span style="color:#bfbab0;">
+   {% for pin in pins %}</span><span style="color:#bfbab0;">
+   </span><span style="color:#39bae690;">&lt;</span><span style="color:#59c2ff;">h2</span><span style="color:#39bae690;">&gt;</span><span style="color:#bfbab0;">{{ pins[pin].name }}</span><span style="color:#bfbab0;">
+   {% if pins[pin].state == &#39;True&#39; %}</span><span style="color:#bfbab0;">
+      is currently </span><span style="color:#39bae690;">&lt;</span><span style="color:#59c2ff;">strong</span><span style="color:#39bae690;">&gt;</span><span style="color:#bfbab0;">on</span><span style="color:#39bae690;">&lt;/</span><span style="color:#59c2ff;">strong</span><span style="color:#39bae690;">&gt;&lt;/</span><span style="color:#59c2ff;">h2</span><span style="color:#39bae690;">&gt;&lt;</span><span style="color:#59c2ff;">div </span><span style="color:#ffb454;">class</span><span style="color:#bfbab0cc;">=</span><span style="color:#c2d94c;">&quot;row&quot;</span><span style="color:#39bae690;">&gt;&lt;</span><span style="color:#59c2ff;">div </span><span style="color:#ffb454;">class</span><span style="color:#bfbab0cc;">=</span><span style="color:#c2d94c;">&quot;col-md-2&quot;</span><span style="color:#39bae690;">&gt;</span><span style="color:#bfbab0;">
+      </span><span style="color:#39bae690;">&lt;</span><span style="color:#59c2ff;">a </span><span style="color:#ffb454;">href</span><span style="color:#bfbab0cc;">=</span><span style="color:#c2d94c;">&quot;/esp8266/{{pin}}/0&quot; </span><span style="color:#ffb454;">class</span><span style="color:#bfbab0cc;">=</span><span style="color:#c2d94c;">&quot;btn btn-block btn-lg btn-default&quot; </span><span style="color:#ffb454;">role</span><span style="color:#bfbab0cc;">=</span><span style="color:#c2d94c;">&quot;button&quot;</span><span style="color:#39bae690;">&gt;</span><span style="color:#bfbab0;">Turn off</span><span style="color:#39bae690;">&lt;/</span><span style="color:#59c2ff;">a</span><span style="color:#39bae690;">&gt;&lt;/</span><span style="color:#59c2ff;">div</span><span style="color:#39bae690;">&gt;&lt;/</span><span style="color:#59c2ff;">div</span><span style="color:#39bae690;">&gt;</span><span style="color:#bfbab0;">
+   {% else %}</span><span style="color:#bfbab0;">
+      is currently </span><span style="color:#39bae690;">&lt;</span><span style="color:#59c2ff;">strong</span><span style="color:#39bae690;">&gt;</span><span style="color:#bfbab0;">off</span><span style="color:#39bae690;">&lt;/</span><span style="color:#59c2ff;">strong</span><span style="color:#39bae690;">&gt;&lt;/</span><span style="color:#59c2ff;">h2</span><span style="color:#39bae690;">&gt;&lt;</span><span style="color:#59c2ff;">div </span><span style="color:#ffb454;">class</span><span style="color:#bfbab0cc;">=</span><span style="color:#c2d94c;">&quot;row&quot;</span><span style="color:#39bae690;">&gt;&lt;</span><span style="color:#59c2ff;">div </span><span style="color:#ffb454;">class</span><span style="color:#bfbab0cc;">=</span><span style="color:#c2d94c;">&quot;col-md-2&quot;</span><span style="color:#39bae690;">&gt;</span><span style="color:#bfbab0;">
+      </span><span style="color:#39bae690;">&lt;</span><span style="color:#59c2ff;">a </span><span style="color:#ffb454;">href</span><span style="color:#bfbab0cc;">=</span><span style="color:#c2d94c;">&quot;/esp8266/{{pin}}/1&quot; </span><span style="color:#ffb454;">class</span><span style="color:#bfbab0cc;">=</span><span style="color:#c2d94c;">&quot;btn btn-block btn-lg btn-primary&quot; </span><span style="color:#ffb454;">role</span><span style="color:#bfbab0cc;">=</span><span style="color:#c2d94c;">&quot;button&quot;</span><span style="color:#39bae690;">&gt;</span><span style="color:#bfbab0;">Turn on</span><span style="color:#39bae690;">&lt;/</span><span style="color:#59c2ff;">a</span><span style="color:#39bae690;">&gt;&lt;/</span><span style="color:#59c2ff;">div</span><span style="color:#39bae690;">&gt;&lt;/</span><span style="color:#59c2ff;">div</span><span style="color:#39bae690;">&gt;</span><span style="color:#bfbab0;">
+   {% endif %}</span><span style="color:#bfbab0;">
+   {% endfor %}</span><span style="color:#bfbab0;">
+   </span><span style="color:#39bae690;">&lt;</span><span style="color:#59c2ff;">h3</span><span style="color:#39bae690;">&gt;</span><span style="color:#bfbab0;">DHT Readings (updated </span><span style="color:#39bae690;">&lt;</span><span style="color:#59c2ff;">span </span><span style="color:#ffb454;">id</span><span style="color:#bfbab0cc;">=</span><span style="color:#c2d94c;">&quot;readingsUpdated&quot;</span><span style="color:#39bae690;">&gt;&lt;/</span><span style="color:#59c2ff;">span</span><span style="color:#39bae690;">&gt;</span><span style="color:#bfbab0;">)</span><span style="color:#39bae690;">&lt;/</span><span style="color:#59c2ff;">h3</span><span style="color:#39bae690;">&gt;</span><span style="color:#bfbab0;">
+   </span><span style="color:#39bae690;">&lt;</span><span style="color:#59c2ff;">h3</span><span style="color:#39bae690;">&gt;</span><span style="color:#bfbab0;">Temperature: </span><span style="color:#39bae690;">&lt;</span><span style="color:#59c2ff;">span </span><span style="color:#ffb454;">id</span><span style="color:#bfbab0cc;">=</span><span style="color:#c2d94c;">&quot;temperature&quot;</span><span style="color:#39bae690;">&gt;&lt;/</span><span style="color:#59c2ff;">span</span><span style="color:#39bae690;">&gt;</span><span style="color:#bfbab0;">ºC</span><span style="color:#39bae690;">&lt;/</span><span style="color:#59c2ff;">h3</span><span style="color:#39bae690;">&gt;</span><span style="color:#bfbab0;">
+   </span><span style="color:#39bae690;">&lt;</span><span style="color:#59c2ff;">h3</span><span style="color:#39bae690;">&gt;</span><span style="color:#bfbab0;">Humidity: </span><span style="color:#39bae690;">&lt;</span><span style="color:#59c2ff;">span </span><span style="color:#ffb454;">id</span><span style="color:#bfbab0cc;">=</span><span style="color:#c2d94c;">&quot;humidity&quot;</span><span style="color:#39bae690;">&gt;&lt;/</span><span style="color:#59c2ff;">span</span><span style="color:#39bae690;">&gt;</span><span style="color:#bfbab0;">%</span><span style="color:#39bae690;">&lt;/</span><span style="color:#59c2ff;">h3</span><span style="color:#39bae690;">&gt;</span><span style="color:#bfbab0;">
+</span><span style="color:#39bae690;">&lt;/</span><span style="color:#59c2ff;">body</span><span style="color:#39bae690;">&gt;</span><span style="color:#bfbab0;">
+</span><span style="color:#39bae690;">&lt;/</span><span style="color:#59c2ff;">html</span><span style="color:#39bae690;">&gt;</span><span style="color:#bfbab0;">
+</span></pre>
+<p>ESP8266'nın Raspberry Pi web sunucusuyla etkileşime girmesi için PubSubClient kütüphanesini kurmamız gerekir. </p>
+<p>Bu kütüphane, MQTT'yi destekleyen bir sunucu ile basit yayınlama / abone olma mesajlaşma için bir istemci sağlar (temel olarak ESP8266'nızın Python web sunucusu ile konuşmasına izin verir).</p>
+<p><strong>PubSubClient kitaplığını yükleme</strong></p>
+<p><strong>1) PubSubClient kütüphanesini indirmek için</strong>
+https://github.com/knolleary/pubsubclient/archive/master.zip   girip buradan indirebiliriz. İndirilenler klasörümüzde bir .zip klasörümüz olmalıdır.</p>
+<p><strong>2) .zip klasörünü çıkardıktan sonra pubsubclient-master klasörünü alacağız.</strong></p>
+<p><strong>3) Klasörün adını pubsubclient-master'dan pubsubclient'e çevireceğiz.Çünkü bu klasör abone-yayıncı işlemi için kullanılan kütüphane.</strong></p>
+<p><strong>4) pubsubclient klasörünü Arduino IDE kurulum kütüphaneleri klasörüne yerleştirdim.</strong></p>
+<p>Kütüphane bir dizi örnek program ile gelir. Arduino IDE yazılımında Dosya&gt; Örnekler&gt; PubSubClient'e bakmak gerekir.</p>
+<p><strong>DHT sensörü kütüphanesi, ESP8266 veya Arduino kartlarınızla sıcaklık ve nemi okumak için herhangi bir DHT sensörünü kullanmanın kolay bir yolunu sunar.Aşağıdaki adımlarda nasıl indirilebileceğini görebiliriz:</strong></p>
+<p><strong>1) DHT sensör kütüphanesini indirmek için DHT sensörü kütüphanesi, ESP8266 veya Arduino kartlarınızla sıcaklık ve nemi okumak için herhangi bir DHT sensörünü kullanmanın kolay bir yolunu sunar.</strong></p>
+<p><strong>1) DHT sensör kütüphanesini indirmek için https://github.com/adafruit/DHT-sensor-library girip indirdim.  İndirilenler klasörünüzde bir .zip klasörünüz olmalıdır.</strong></p>
+<p><strong>2) .zip klasörünü açtıktan sonra DHT-sensor-library-master klasörünü çıkartacağız.</strong></p>
+<p><strong>3) Klasörümüzü DHT-sensor-library-master'dan DHT'ye yeniden adlandırdım.</strong></p>
+<p><strong>4) DHT klasörünü Arduino IDE kurulum kütüphanelerine taşıdım.</strong></p>
+<p><strong>5) Arduino IDE'mizi tekrar açtıktan sonra indirilenler klasörümüzde bir .zip klasörümüz olmalıdır.</strong></p>
+<p>Son olarak, ESP8266'mıza tam çizimi yükleyebiliriz. (SSID, şifre ve RPi IP adresim ile değiştirdim.):</p>
+<p><strong>ESP8266WiFi kütüphanesini ve PubSubClient kütüphanesini yükleme</strong></p>
+<pre style="background-color:#0f1419;">
+<span style="color:#bfbab0;">include &lt;ESP8266WiFi</span><span style="color:#f29668;">.</span><span style="color:#bfbab0;">h&gt;</span><span style="color:#bfbab0;">
+include &lt;PubSubClient</span><span style="color:#f29668;">.</span><span style="color:#bfbab0;">h&gt;</span><span style="color:#bfbab0;">
+include </span><span style="color:#c2d94c;">&quot;DHT.h&quot;</span><span style="color:#bfbab0;">
+</span><span style="color:#bfbab0;">
+</span><span style="font-style:italic;color:#5c6773;">// Kullanmakta olduğunuz DHT sensör tipi için aşağıdaki satırlardan birini kullanabiliriz.Bende DHT 22 olduğu için o satırı bıraktım.</span><span style="font-style:italic;color:#5c6773;">
+//#define DHTTYPE DHT11   // DHT 11</span><span style="font-style:italic;color:#5c6773;">
+//#define DHTTYPE DHT21   // DHT 21 (AM2301)</span><span style="font-style:italic;color:#5c6773;">
+</span><span style="color:#bfbab0;">define DHTTYPE DHT22   </span><span style="font-style:italic;color:#5c6773;">// DHT 22  (AM2302), AM2321</span><span style="font-style:italic;color:#5c6773;">
+</span><span style="color:#bfbab0;">
+</span><span style="font-style:italic;color:#5c6773;">// Aşağıdaki kimlik bilgilerini değiştirerek,ESP8266 yönlendiricimize bağlanırız.</span><span style="font-style:italic;color:#5c6773;">
+</span><span style="color:#bfbab0;">
+</span><span style="color:#ff7733;">const char</span><span style="color:#f29668;">*</span><span style="color:#bfbab0;"> ssid </span><span style="color:#f29668;">= </span><span style="color:#c2d94c;">&quot;YOUR_SSID&quot;</span><span style="color:#bfbab0cc;">;</span><span style="color:#bfbab0;">
+</span><span style="color:#ff7733;">const char</span><span style="color:#f29668;">*</span><span style="color:#bfbab0;"> password </span><span style="color:#f29668;">= </span><span style="color:#c2d94c;">&quot;YOUR_PASSWORD&quot;</span><span style="color:#bfbab0cc;">;</span><span style="color:#bfbab0;">
+</span><span style="color:#bfbab0;">
+</span><span style="font-style:italic;color:#5c6773;">// Değişkeni Raspberry Pi IP adresimle değiştirdim, böylece MQTT brokerına bağlanabilir.</span><span style="font-style:italic;color:#5c6773;">
+</span><span style="color:#ff7733;">const char</span><span style="color:#f29668;">*</span><span style="color:#bfbab0;"> mqtt_server </span><span style="color:#f29668;">= </span><span style="color:#c2d94c;">&quot;YOUR_RPi_IP_Address&quot;</span><span style="color:#bfbab0cc;">;</span><span style="color:#bfbab0;">
+</span><span style="color:#bfbab0;">
+</span><span style="font-style:italic;color:#5c6773;">// EspClient&#39;i başlat.</span><span style="font-style:italic;color:#5c6773;">
+</span><span style="color:#bfbab0;">
+WiFiClient espClient</span><span style="color:#bfbab0cc;">;</span><span style="color:#bfbab0;">
+PubSubClient </span><span style="color:#ffb454;">client</span><span style="color:#bfbab0;">(</span><span style="color:#f29718;">espClient</span><span style="color:#bfbab0;">)</span><span style="color:#bfbab0cc;">;</span><span style="color:#bfbab0;">
+</span><span style="color:#bfbab0;">
+</span><span style="font-style:italic;color:#5c6773;">// ESP8266&#39;mızın her bir GPIO&#39;suna bir LED bağladım.</span><span style="font-style:italic;color:#5c6773;">
+</span><span style="color:#ff7733;">const int</span><span style="color:#bfbab0;"> ledGPIO5 </span><span style="color:#f29668;">= </span><span style="color:#f29718;">5</span><span style="color:#bfbab0cc;">;</span><span style="color:#bfbab0;">
+</span><span style="color:#ff7733;">const int</span><span style="color:#bfbab0;"> ledGPIO4 </span><span style="color:#f29668;">= </span><span style="color:#f29718;">4</span><span style="color:#bfbab0cc;">;</span><span style="color:#bfbab0;">
+</span><span style="color:#bfbab0;">
+</span><span style="font-style:italic;color:#5c6773;">// DHT Sensör</span><span style="font-style:italic;color:#5c6773;">
+</span><span style="color:#ff7733;">const int</span><span style="color:#bfbab0;"> DHTPin </span><span style="color:#f29668;">= </span><span style="color:#f29718;">14</span><span style="color:#bfbab0cc;">;</span><span style="color:#bfbab0;">
+</span><span style="color:#bfbab0;">
+</span><span style="font-style:italic;color:#5c6773;">// DHT sensörünü başlat.</span><span style="font-style:italic;color:#5c6773;">
+</span><span style="color:#bfbab0;">DHT </span><span style="color:#ffb454;">dht</span><span style="color:#bfbab0;">(</span><span style="color:#f29718;">DHTPin</span><span style="color:#bfbab0cc;">, </span><span style="color:#f29718;">DHTTYPE</span><span style="color:#bfbab0;">)</span><span style="color:#bfbab0cc;">;</span><span style="color:#bfbab0;">
+</span><span style="color:#bfbab0;">
+</span><span style="font-style:italic;color:#5c6773;">// Değişken yardımcı zamanlayıcılar</span><span style="font-style:italic;color:#5c6773;">
+</span><span style="color:#ff7733;">long</span><span style="color:#bfbab0;"> now </span><span style="color:#f29668;">= </span><span style="color:#ffb454;">millis</span><span style="color:#bfbab0;">()</span><span style="color:#bfbab0cc;">;</span><span style="color:#bfbab0;">
+</span><span style="color:#ff7733;">long</span><span style="color:#bfbab0;"> lastMeasure </span><span style="color:#f29668;">= </span><span style="color:#f29718;">0</span><span style="color:#bfbab0cc;">;</span><span style="color:#bfbab0;">
+</span><span style="color:#bfbab0;">
+</span><span style="font-style:italic;color:#5c6773;">// Aşağıdaki fonksiyon sabit olarak kalacak. Bu fonsiyonlar ESP8266&#39;mizi yönlendiricimize bağlar.</span><span style="font-style:italic;color:#5c6773;">
+</span><span style="color:#ff7733;">void </span><span style="color:#ffb454;">setup_wifi</span><span style="color:#bfbab0;">() {</span><span style="color:#bfbab0;">
+  </span><span style="color:#ffb454;">delay</span><span style="color:#bfbab0;">(</span><span style="color:#f29718;">10</span><span style="color:#bfbab0;">)</span><span style="color:#bfbab0cc;">;</span><span style="color:#bfbab0;">
+</span><span style="font-style:italic;color:#5c6773;">// Bir WiFi ağına bağlanarak başlıyoruz</span><span style="font-style:italic;color:#5c6773;">
+</span><span style="color:#bfbab0;">  Serial</span><span style="color:#f29668;">.</span><span style="color:#ffb454;">println</span><span style="color:#bfbab0;">()</span><span style="color:#bfbab0cc;">;</span><span style="color:#bfbab0;">
+  Serial</span><span style="color:#f29668;">.</span><span style="color:#ffb454;">print</span><span style="color:#bfbab0;">(</span><span style="color:#c2d94c;">&quot;Connecting to &quot;</span><span style="color:#bfbab0;">)</span><span style="color:#bfbab0cc;">;</span><span style="color:#bfbab0;">
+Serial</span><span style="color:#f29668;">.</span><span style="color:#ffb454;">println</span><span style="color:#bfbab0;">(ssid)</span><span style="color:#bfbab0cc;">;</span><span style="color:#bfbab0;">
+  WiFi</span><span style="color:#f29668;">.</span><span style="color:#ffb454;">begin</span><span style="color:#bfbab0;">(ssid</span><span style="color:#bfbab0cc;">,</span><span style="color:#bfbab0;"> password)</span><span style="color:#bfbab0cc;">;</span><span style="color:#bfbab0;">
+  </span><span style="color:#ff7733;">while </span><span style="color:#bfbab0;">(WiFi</span><span style="color:#f29668;">.</span><span style="color:#ffb454;">status</span><span style="color:#bfbab0;">() </span><span style="color:#f29668;">!=</span><span style="color:#bfbab0;"> WL_CONNECTED) {</span><span style="color:#bfbab0;">
+    </span><span style="color:#ffb454;">delay</span><span style="color:#bfbab0;">(</span><span style="color:#f29718;">500</span><span style="color:#bfbab0;">)</span><span style="color:#bfbab0cc;">;</span><span style="color:#bfbab0;">
+    Serial</span><span style="color:#f29668;">.</span><span style="color:#ffb454;">print</span><span style="color:#bfbab0;">(</span><span style="color:#c2d94c;">&quot;.&quot;</span><span style="color:#bfbab0;">)</span><span style="color:#bfbab0cc;">;</span><span style="color:#bfbab0;">
+  }</span><span style="color:#bfbab0;">
+  Serial</span><span style="color:#f29668;">.</span><span style="color:#ffb454;">println</span><span style="color:#bfbab0;">(</span><span style="color:#c2d94c;">&quot;&quot;</span><span style="color:#bfbab0;">)</span><span style="color:#bfbab0cc;">;</span><span style="color:#bfbab0;">
+  Serial</span><span style="color:#f29668;">.</span><span style="color:#ffb454;">print</span><span style="color:#bfbab0;">(</span><span style="color:#c2d94c;">&quot;WiFi connected - ESP IP address: &quot;</span><span style="color:#bfbab0;">)</span><span style="color:#bfbab0cc;">;</span><span style="color:#bfbab0;">
+  Serial</span><span style="color:#f29668;">.</span><span style="color:#ffb454;">println</span><span style="color:#bfbab0;">(WiFi</span><span style="color:#f29668;">.</span><span style="color:#ffb454;">localIP</span><span style="color:#bfbab0;">())</span><span style="color:#bfbab0cc;">;</span><span style="color:#bfbab0;">}</span><span style="color:#bfbab0;">
+</span><span style="color:#bfbab0;">
+</span><span style="font-style:italic;color:#5c6773;">// Bu fonsiyon, bazı aygıtlar, ESP8266&#39;mızın abone olduğu bir konuya bir mesaj yayınladığında yürütülür.</span><span style="font-style:italic;color:#5c6773;">
+// Programımıza mantık eklemek için aşağıdaki fonsiyonu değiştirmeliyiz.Böylece bir cihaz bir konuya bir mesaj yayınladığında ESP8266’mız ile abone olabiliriz.</span><span style="font-style:italic;color:#5c6773;">
+</span><span style="color:#bfbab0;">
+</span><span style="color:#ff7733;">void </span><span style="color:#ffb454;">callback</span><span style="color:#bfbab0;">(String </span><span style="color:#f29718;">topic</span><span style="color:#bfbab0cc;">,</span><span style="color:#bfbab0;"> byte</span><span style="color:#f29668;">* </span><span style="color:#f29718;">message</span><span style="color:#bfbab0cc;">, </span><span style="color:#ff7733;">unsigned int </span><span style="color:#f29718;">length</span><span style="color:#bfbab0;">) {</span><span style="color:#bfbab0;">
+  Serial</span><span style="color:#f29668;">.</span><span style="color:#ffb454;">print</span><span style="color:#bfbab0;">(</span><span style="color:#c2d94c;">&quot;Message arrived on topic: &quot;</span><span style="color:#bfbab0;">)</span><span style="color:#bfbab0cc;">;</span><span style="color:#bfbab0;">
+  Serial</span><span style="color:#f29668;">.</span><span style="color:#ffb454;">print</span><span style="color:#bfbab0;">(topic)</span><span style="color:#bfbab0cc;">;</span><span style="color:#bfbab0;">
+  Serial</span><span style="color:#f29668;">.</span><span style="color:#ffb454;">print</span><span style="color:#bfbab0;">(</span><span style="color:#c2d94c;">&quot;. Message: &quot;</span><span style="color:#bfbab0;">)</span><span style="color:#bfbab0cc;">;</span><span style="color:#bfbab0;">
+  String messageTemp</span><span style="color:#bfbab0cc;">;</span><span style="color:#bfbab0;">
+  </span><span style="color:#bfbab0;">
+  </span><span style="color:#ff7733;">for </span><span style="color:#bfbab0;">(</span><span style="color:#ff7733;">int</span><span style="color:#bfbab0;"> i </span><span style="color:#f29668;">= </span><span style="color:#f29718;">0</span><span style="color:#bfbab0cc;">;</span><span style="color:#bfbab0;"> i </span><span style="color:#f29668;">&lt;</span><span style="color:#bfbab0;"> length</span><span style="color:#bfbab0cc;">;</span><span style="color:#bfbab0;"> i</span><span style="color:#f29668;">++</span><span style="color:#bfbab0;">) {</span><span style="color:#bfbab0;">
+    Serial</span><span style="color:#f29668;">.</span><span style="color:#ffb454;">print</span><span style="color:#bfbab0;">((</span><span style="color:#ff7733;">char</span><span style="color:#bfbab0;">)message[i])</span><span style="color:#bfbab0cc;">;</span><span style="color:#bfbab0;">
+    messageTemp </span><span style="color:#f29668;">+= </span><span style="color:#bfbab0;">(</span><span style="color:#ff7733;">char</span><span style="color:#bfbab0;">)message[i]</span><span style="color:#bfbab0cc;">;</span><span style="color:#bfbab0;">
+  }</span><span style="color:#bfbab0;">
+  Serial</span><span style="color:#f29668;">.</span><span style="color:#ffb454;">println</span><span style="color:#bfbab0;">()</span><span style="color:#bfbab0cc;">;</span><span style="color:#bfbab0;">
+</span><span style="color:#bfbab0;">
+   </span><span style="font-style:italic;color:#5c6773;">// MQTT ile daha fazla GPIO&#39;yu kontrol etmek için daha fazla  şey ekleyebiliriz.</span><span style="font-style:italic;color:#5c6773;">
+</span><span style="color:#bfbab0;">
+    </span><span style="font-style:italic;color:#5c6773;">// home / office / esp1 / gpio2 konusuna bir mesaj geldiyse, mesajın 1 veya 0 olup olmadığını kontrol ederiz. ESP GPIO mesaja göre döner.</span><span style="font-style:italic;color:#5c6773;">
+</span><span style="color:#bfbab0;">
+  </span><span style="color:#ff7733;">if</span><span style="color:#bfbab0;">(topic</span><span style="color:#f29668;">==</span><span style="color:#c2d94c;">&quot;esp8266/4&quot;</span><span style="color:#bfbab0;">){</span><span style="color:#bfbab0;">
+      Serial</span><span style="color:#f29668;">.</span><span style="color:#ffb454;">print</span><span style="color:#bfbab0;">(</span><span style="color:#c2d94c;">&quot;Changing GPIO 4 to &quot;</span><span style="color:#bfbab0;">)</span><span style="color:#bfbab0cc;">;</span><span style="color:#bfbab0;">
+      </span><span style="color:#ff7733;">if</span><span style="color:#bfbab0;">(messageTemp </span><span style="color:#f29668;">== </span><span style="color:#c2d94c;">&quot;1&quot;</span><span style="color:#bfbab0;">){</span><span style="color:#bfbab0;">
+        </span><span style="color:#ffb454;">digitalWrite</span><span style="color:#bfbab0;">(ledGPIO4</span><span style="color:#bfbab0cc;">,</span><span style="color:#bfbab0;"> HIGH)</span><span style="color:#bfbab0cc;">;</span><span style="color:#bfbab0;">
+        Serial</span><span style="color:#f29668;">.</span><span style="color:#ffb454;">print</span><span style="color:#bfbab0;">(</span><span style="color:#c2d94c;">&quot;On&quot;</span><span style="color:#bfbab0;">)</span><span style="color:#bfbab0cc;">;</span><span style="color:#bfbab0;">
+      }</span><span style="color:#bfbab0;">
+      </span><span style="color:#ff7733;">else if</span><span style="color:#bfbab0;">(messageTemp </span><span style="color:#f29668;">== </span><span style="color:#c2d94c;">&quot;0&quot;</span><span style="color:#bfbab0;">){</span><span style="color:#bfbab0;">
+        </span><span style="color:#ffb454;">digitalWrite</span><span style="color:#bfbab0;">(ledGPIO4</span><span style="color:#bfbab0cc;">,</span><span style="color:#bfbab0;"> LOW)</span><span style="color:#bfbab0cc;">;</span><span style="color:#bfbab0;">
+        Serial</span><span style="color:#f29668;">.</span><span style="color:#ffb454;">print</span><span style="color:#bfbab0;">(</span><span style="color:#c2d94c;">&quot;Off&quot;</span><span style="color:#bfbab0;">)</span><span style="color:#bfbab0cc;">;</span><span style="color:#bfbab0;">
+      }</span><span style="color:#bfbab0;">
+  }</span><span style="color:#bfbab0;">
+  </span><span style="color:#ff7733;">if</span><span style="color:#bfbab0;">(topic</span><span style="color:#f29668;">==</span><span style="color:#c2d94c;">&quot;esp8266/5&quot;</span><span style="color:#bfbab0;">){</span><span style="color:#bfbab0;">
+      Serial</span><span style="color:#f29668;">.</span><span style="color:#ffb454;">print</span><span style="color:#bfbab0;">(</span><span style="color:#c2d94c;">&quot;Changing GPIO 5 to &quot;</span><span style="color:#bfbab0;">)</span><span style="color:#bfbab0cc;">;</span><span style="color:#bfbab0;">
+      </span><span style="color:#ff7733;">if</span><span style="color:#bfbab0;">(messageTemp </span><span style="color:#f29668;">== </span><span style="color:#c2d94c;">&quot;1&quot;</span><span style="color:#bfbab0;">){</span><span style="color:#bfbab0;">
+        </span><span style="color:#ffb454;">digitalWrite</span><span style="color:#bfbab0;">(ledGPIO5</span><span style="color:#bfbab0cc;">,</span><span style="color:#bfbab0;"> HIGH)</span><span style="color:#bfbab0cc;">;</span><span style="color:#bfbab0;">
+        Serial</span><span style="color:#f29668;">.</span><span style="color:#ffb454;">print</span><span style="color:#bfbab0;">(</span><span style="color:#c2d94c;">&quot;On&quot;</span><span style="color:#bfbab0;">)</span><span style="color:#bfbab0cc;">;</span><span style="color:#bfbab0;">
+      }</span><span style="color:#bfbab0;">
+      </span><span style="color:#ff7733;">else if</span><span style="color:#bfbab0;">(messageTemp </span><span style="color:#f29668;">== </span><span style="color:#c2d94c;">&quot;0&quot;</span><span style="color:#bfbab0;">){</span><span style="color:#bfbab0;">
+        </span><span style="color:#ffb454;">digitalWrite</span><span style="color:#bfbab0;">(ledGPIO5</span><span style="color:#bfbab0cc;">,</span><span style="color:#bfbab0;"> LOW)</span><span style="color:#bfbab0cc;">;</span><span style="color:#bfbab0;">
+        Serial</span><span style="color:#f29668;">.</span><span style="color:#ffb454;">print</span><span style="color:#bfbab0;">(</span><span style="color:#c2d94c;">&quot;Off&quot;</span><span style="color:#bfbab0;">)</span><span style="color:#bfbab0cc;">;</span><span style="color:#bfbab0;">
+      }</span><span style="color:#bfbab0;">
+  }</span><span style="color:#bfbab0;">
+  Serial</span><span style="color:#f29668;">.</span><span style="color:#ffb454;">println</span><span style="color:#bfbab0;">()</span><span style="color:#bfbab0cc;">;</span><span style="color:#bfbab0;">
+}</span><span style="color:#bfbab0;">
+</span><span style="color:#bfbab0;">
+</span><span style="font-style:italic;color:#5c6773;">// Bu işlevler ESP8266&#39;nızı MQTT aracımıza bağlar.</span><span style="font-style:italic;color:#5c6773;">
+// ESP8266&#39;mızla daha fazla konuya abone olmak istiyorsak aşağıdaki fonsiyonları değiştirmeliyiz.</span><span style="font-style:italic;color:#5c6773;">
+</span><span style="color:#bfbab0;">
+</span><span style="color:#ff7733;">void </span><span style="color:#ffb454;">reconnect</span><span style="color:#bfbab0;">() {</span><span style="color:#bfbab0;">
+   </span><span style="font-style:italic;color:#5c6773;">// Yeniden bağlantı kuruluncaya kadar döngü yap</span><span style="font-style:italic;color:#5c6773;">
+  </span><span style="color:#ff7733;">while </span><span style="color:#bfbab0;">(</span><span style="color:#f29668;">!</span><span style="color:#bfbab0;">client</span><span style="color:#f29668;">.</span><span style="color:#ffb454;">connected</span><span style="color:#bfbab0;">()) {</span><span style="color:#bfbab0;">
+    Serial</span><span style="color:#f29668;">.</span><span style="color:#ffb454;">print</span><span style="color:#bfbab0;">(</span><span style="color:#c2d94c;">&quot;Attempting MQTT connection...&quot;</span><span style="color:#bfbab0;">)</span><span style="color:#bfbab0cc;">;</span><span style="color:#bfbab0;">
+    </span><span style="font-style:italic;color:#5c6773;">// Bağlanmayı dene</span><span style="font-style:italic;color:#5c6773;">
+      </span><span style="color:#f29668;">/ *</span><span style="color:#bfbab0;">
+      MQTT ÇOKLU BAĞLANTILARLA SORUNSUZ OLURSA BU SONRAKİ HATTI DEĞİŞTİRMELİYİZ</span><span style="color:#f29668;">.</span><span style="color:#bfbab0;">
+      ESP cihaz kimliğini değiştirmek için ESP8266</span><span style="color:#c2d94c;">&#39;ya benzersiz bir isim vermemiz gerekecektir.</span><span style="color:#c2d94c;">
+      İşte şimdi nasıl görünüyor:</span><span style="color:#c2d94c;">
+        if (client.connect (&quot;ESP8266Client&quot;)) {</span><span style="color:#c2d94c;">
+      MQTT aracısına bağlı daha fazla cihaz istiyorsak, bunu şu şekilde yapabiliriz:</span><span style="color:#c2d94c;">
+        if (client.connect (&quot;ESPOffice&quot;)) {</span><span style="color:#c2d94c;">
+      Sonra, diğer ESP için:</span><span style="color:#c2d94c;">
+        if (client.connect (&quot;ESPGarage&quot;)) {</span><span style="color:#c2d94c;">
+       Bu MQTT çoklu bağlantı sorununuzu çözmek için</span><span style="color:#c2d94c;">
+      Loop IN loop () işlevi cihazınızın adıyla eşleşmelidir.</span><span style="color:#c2d94c;">
+     * /   </span><span style="color:#c2d94c;">
+ if (client.connect(&quot;ESP8266Client&quot;)) {</span><span style="color:#c2d94c;">
+      Serial.println(&quot;connected&quot;); </span><span style="color:#c2d94c;">
+ </span><span style="color:#c2d94c;">
+      // Bir konuya abone olup veya tekrar kaydolmalıyız.</span><span style="color:#c2d94c;">
+       // Daha fazla konuya abone olabiliriz (bu örnekte daha fazla LED&#39;</span><span style="color:#bfbab0;">yi kontrol etmek için</span><span style="color:#ff3333;">)</span><span style="color:#bfbab0;">
+</span><span style="color:#bfbab0;">
+      client</span><span style="color:#f29668;">.</span><span style="color:#ffb454;">subscribe</span><span style="color:#bfbab0;">(</span><span style="color:#c2d94c;">&quot;esp8266/4&quot;</span><span style="color:#bfbab0;">)</span><span style="color:#bfbab0cc;">;</span><span style="color:#bfbab0;">
+      client</span><span style="color:#f29668;">.</span><span style="color:#ffb454;">subscribe</span><span style="color:#bfbab0;">(</span><span style="color:#c2d94c;">&quot;esp8266/5&quot;</span><span style="color:#bfbab0;">)</span><span style="color:#bfbab0cc;">;</span><span style="color:#bfbab0;">
+    } </span><span style="color:#ff7733;">else </span><span style="color:#bfbab0;">{</span><span style="color:#bfbab0;">
+      Serial</span><span style="color:#f29668;">.</span><span style="color:#ffb454;">print</span><span style="color:#bfbab0;">(</span><span style="color:#c2d94c;">&quot;failed, rc=&quot;</span><span style="color:#bfbab0;">)</span><span style="color:#bfbab0cc;">;</span><span style="color:#bfbab0;">
+      Serial</span><span style="color:#f29668;">.</span><span style="color:#ffb454;">print</span><span style="color:#bfbab0;">(client</span><span style="color:#f29668;">.</span><span style="color:#ffb454;">state</span><span style="color:#bfbab0;">())</span><span style="color:#bfbab0cc;">;</span><span style="color:#bfbab0;">
+      Serial</span><span style="color:#f29668;">.</span><span style="color:#ffb454;">println</span><span style="color:#bfbab0;">(</span><span style="color:#c2d94c;">&quot; try again in 5 seconds&quot;</span><span style="color:#bfbab0;">)</span><span style="color:#bfbab0cc;">;</span><span style="color:#bfbab0;">
+      </span><span style="font-style:italic;color:#5c6773;">// Yeniden denemeden önce 5 saniye bekle.</span><span style="font-style:italic;color:#5c6773;">
+      </span><span style="color:#ffb454;">delay</span><span style="color:#bfbab0;">(</span><span style="color:#f29718;">5000</span><span style="color:#bfbab0;">)</span><span style="color:#bfbab0cc;">;</span><span style="color:#bfbab0;">
+    }</span><span style="color:#bfbab0;">
+  }</span><span style="color:#ff3333;">}</span><span style="color:#bfbab0;">
+</span><span style="color:#bfbab0;">
+</span><span style="font-style:italic;color:#5c6773;">// Kurulum işlevi, ESP GPIO&#39;larımızı Çıkışlara ayarlar, 115200 baud hızında seri iletişimi başlatır.</span><span style="font-style:italic;color:#5c6773;">
+// Mqtt aracısını ayarlar ve geri arama işlevini ayarlar</span><span style="font-style:italic;color:#5c6773;">
+// Geri arama işlevi, iletileri alan ve LED&#39;leri gerçekten kontrol eden şeydir.</span><span style="font-style:italic;color:#5c6773;">
+</span><span style="color:#ff7733;">void </span><span style="color:#ffb454;">setup</span><span style="color:#bfbab0;">() {</span><span style="color:#bfbab0;">
+  dht</span><span style="color:#f29668;">.</span><span style="color:#ffb454;">begin</span><span style="color:#bfbab0;">()</span><span style="color:#bfbab0cc;">;</span><span style="color:#bfbab0;">
+  </span><span style="color:#ffb454;">pinMode</span><span style="color:#bfbab0;">(ledGPIO4</span><span style="color:#bfbab0cc;">,</span><span style="color:#bfbab0;"> OUTPUT)</span><span style="color:#bfbab0cc;">;</span><span style="color:#bfbab0;">
+  </span><span style="color:#ffb454;">pinMode</span><span style="color:#bfbab0;">(ledGPIO5</span><span style="color:#bfbab0cc;">,</span><span style="color:#bfbab0;"> OUTPUT)</span><span style="color:#bfbab0cc;">;</span><span style="color:#bfbab0;">
+  </span><span style="color:#bfbab0;">
+  Serial</span><span style="color:#f29668;">.</span><span style="color:#ffb454;">begin</span><span style="color:#bfbab0;">(</span><span style="color:#f29718;">115200</span><span style="color:#bfbab0;">)</span><span style="color:#bfbab0cc;">;</span><span style="color:#bfbab0;">
+  </span><span style="color:#ffb454;">setup_wifi</span><span style="color:#bfbab0;">()</span><span style="color:#bfbab0cc;">;</span><span style="color:#bfbab0;">
+  client</span><span style="color:#f29668;">.</span><span style="color:#ffb454;">setServer</span><span style="color:#bfbab0;">(mqtt_server</span><span style="color:#bfbab0cc;">, </span><span style="color:#f29718;">1883</span><span style="color:#bfbab0;">)</span><span style="color:#bfbab0cc;">;</span><span style="color:#bfbab0;">
+  client</span><span style="color:#f29668;">.</span><span style="color:#ffb454;">setCallback</span><span style="color:#bfbab0;">(callback)</span><span style="color:#bfbab0cc;">;</span><span style="color:#bfbab0;">
+}</span><span style="color:#bfbab0;">
+</span><span style="color:#bfbab0;">
+</span><span style="font-style:italic;color:#5c6773;">// Bu proje için, döngü işlevindeki herhangi bir şeyi değiştirmemize gerek yoktur.</span><span style="font-style:italic;color:#5c6773;">
+// Temel olarak, ESP&#39;nin brokerimize bağlı olmasını sağlar.</span><span style="font-style:italic;color:#5c6773;">
+</span><span style="color:#bfbab0;">
+</span><span style="color:#ff7733;">void </span><span style="color:#ffb454;">loop</span><span style="color:#bfbab0;">() {</span><span style="color:#bfbab0;">
+  </span><span style="color:#ff7733;">if </span><span style="color:#bfbab0;">(</span><span style="color:#f29668;">!</span><span style="color:#bfbab0;">client</span><span style="color:#f29668;">.</span><span style="color:#ffb454;">connected</span><span style="color:#bfbab0;">()) {</span><span style="color:#bfbab0;">
+    </span><span style="color:#ffb454;">reconnect</span><span style="color:#bfbab0;">()</span><span style="color:#bfbab0cc;">;</span><span style="color:#bfbab0;">
+  }</span><span style="color:#bfbab0;">
+  </span><span style="color:#ff7733;">if</span><span style="color:#bfbab0;">(</span><span style="color:#f29668;">!</span><span style="color:#bfbab0;">client</span><span style="color:#f29668;">.</span><span style="color:#ffb454;">loop</span><span style="color:#bfbab0;">())</span><span style="color:#bfbab0;">
+     </span><span style="font-style:italic;color:#5c6773;">/*</span><span style="font-style:italic;color:#5c6773;">
+     MQTT ÇOKLU BAĞLANTILARLA SORUNSUZ OLURSA BU SONRAKİ HATTI DEĞİŞTİRMELİYİZ.</span><span style="font-style:italic;color:#5c6773;">
+      ESP cihaz kimliğini değiştirmek için ESP8266&#39;ya benzersiz bir isim vermemiz gerekecektir.</span><span style="font-style:italic;color:#5c6773;">
+      İşte şimdi nasıl görünüyor:</span><span style="font-style:italic;color:#5c6773;">
+        client.connect ( &quot;ESP8266Client&quot;);</span><span style="font-style:italic;color:#5c6773;">
+      MQTT aracısına bağlı daha fazla cihaz istiyorsak, bunu şu şekilde yapabiliriz:</span><span style="font-style:italic;color:#5c6773;">
+        client.connect ( &quot;ESPOffice&quot;);</span><span style="font-style:italic;color:#5c6773;">
+      Sonra, diğer ESP için:</span><span style="font-style:italic;color:#5c6773;">
+        client.connect ( &quot;ESPGarage&quot;);</span><span style="font-style:italic;color:#5c6773;">
+       Bu MQTT çoklu bağlantı sorunumuzu çözmek için</span><span style="font-style:italic;color:#5c6773;">
+      Recionnect () işlevindeki bölüm, aygıt adınızla eşleşmelidir.    */</span><span style="color:#bfbab0;">
+</span><span style="color:#bfbab0;">
+    client</span><span style="color:#f29668;">.</span><span style="color:#ffb454;">connect</span><span style="color:#bfbab0;">(</span><span style="color:#c2d94c;">&quot;ESP8266Client&quot;</span><span style="color:#bfbab0;">)</span><span style="color:#bfbab0cc;">;</span><span style="color:#bfbab0;">
+    </span><span style="color:#bfbab0;">
+  now </span><span style="color:#f29668;">= </span><span style="color:#ffb454;">millis</span><span style="color:#bfbab0;">()</span><span style="color:#bfbab0cc;">;</span><span style="color:#bfbab0;">
+   </span><span style="font-style:italic;color:#5c6773;">// Her 10 saniyede yeni sıcaklık ve nem yayınlar</span><span style="font-style:italic;color:#5c6773;">
+  </span><span style="color:#ff7733;">if </span><span style="color:#bfbab0;">(now </span><span style="color:#f29668;">-</span><span style="color:#bfbab0;"> lastMeasure </span><span style="color:#f29668;">&gt; </span><span style="color:#f29718;">10000</span><span style="color:#bfbab0;">) {</span><span style="color:#bfbab0;">
+    lastMeasure </span><span style="color:#f29668;">=</span><span style="color:#bfbab0;"> now</span><span style="color:#bfbab0cc;">;</span><span style="color:#bfbab0;">
+    </span><span style="font-style:italic;color:#5c6773;">// Sensör okumaları da 2 saniyeye kadar eski olabilir (çok yavaş bir sensördür)</span><span style="font-style:italic;color:#5c6773;">
+    </span><span style="color:#ff7733;">float</span><span style="color:#bfbab0;"> h </span><span style="color:#f29668;">=</span><span style="color:#bfbab0;"> dht</span><span style="color:#f29668;">.</span><span style="color:#ffb454;">readHumidity</span><span style="color:#bfbab0;">()</span><span style="color:#bfbab0cc;">;</span><span style="color:#bfbab0;">
+    </span><span style="font-style:italic;color:#5c6773;">// Santigrat olarak sıcaklığı okuyoruz. (varsayılan)</span><span style="font-style:italic;color:#5c6773;">
+    </span><span style="color:#ff7733;">float</span><span style="color:#bfbab0;"> t </span><span style="color:#f29668;">=</span><span style="color:#bfbab0;"> dht</span><span style="color:#f29668;">.</span><span style="color:#ffb454;">readTemperature</span><span style="color:#bfbab0;">()</span><span style="color:#bfbab0cc;">;</span><span style="color:#bfbab0;">
+    </span><span style="font-style:italic;color:#5c6773;">// Fahrenhayt olarak sıcaklığı oku (isFahrenheit = true)   </span><span style="font-style:italic;color:#5c6773;">
+ </span><span style="color:#ff7733;">float</span><span style="color:#bfbab0;"> f </span><span style="color:#f29668;">=</span><span style="color:#bfbab0;"> dht</span><span style="color:#f29668;">.</span><span style="color:#ffb454;">readTemperature</span><span style="color:#bfbab0;">(</span><span style="color:#f29718;">true</span><span style="color:#bfbab0;">)</span><span style="color:#bfbab0cc;">;</span><span style="color:#bfbab0;">
+</span><span style="color:#bfbab0;">
+    </span><span style="font-style:italic;color:#5c6773;">// Herhangi bir okuma başarısız olup olmadığını kontrol etmek için (tekrar denemek için).</span><span style="font-style:italic;color:#5c6773;">
+    </span><span style="color:#ff7733;">if </span><span style="color:#bfbab0;">(</span><span style="color:#f07178;">isnan</span><span style="color:#bfbab0;">(h) </span><span style="color:#f29668;">|| </span><span style="color:#f07178;">isnan</span><span style="color:#bfbab0;">(t) </span><span style="color:#f29668;">|| </span><span style="color:#f07178;">isnan</span><span style="color:#bfbab0;">(f)) {</span><span style="color:#bfbab0;">
+      Serial</span><span style="color:#f29668;">.</span><span style="color:#ffb454;">println</span><span style="color:#bfbab0;">(</span><span style="color:#c2d94c;">&quot;Failed to read from DHT sensor!&quot;</span><span style="color:#bfbab0;">)</span><span style="color:#bfbab0cc;">;</span><span style="color:#bfbab0;">
+      </span><span style="color:#ff7733;">return</span><span style="color:#bfbab0cc;">;</span><span style="color:#bfbab0;">
+    }</span><span style="color:#bfbab0;">
+</span><span style="color:#bfbab0;">
+</span><span style="font-style:italic;color:#5c6773;">//Bu kısımda pinlerdeki sıcaklık değerleri belirleyerek,istediğimiz sıcaklığın altında bir uyarı vermesini sağlayabliriz.Ben burada 5.pinde,25 derecenin altında led’in yanmasını istedim.</span><span style="font-style:italic;color:#5c6773;">
+</span><span style="color:#bfbab0;">
+</span><span style="color:#bfbab0;">
+}</span><span style="color:#bfbab0;">
+</span><span style="color:#bfbab0;">
+    </span><span style="color:#ff7733;">if </span><span style="color:#bfbab0;">(t </span><span style="color:#f29668;">&lt; </span><span style="color:#f29718;">25</span><span style="color:#bfbab0;">) {</span><span style="color:#bfbab0;">
+      </span><span style="color:#ffb454;">digitalWrite</span><span style="color:#bfbab0;">(ledGPIO5</span><span style="color:#bfbab0cc;">,</span><span style="color:#bfbab0;"> HIGH)</span><span style="color:#bfbab0cc;">;</span><span style="color:#bfbab0;">
+        Serial</span><span style="color:#f29668;">.</span><span style="color:#ffb454;">print</span><span style="color:#bfbab0;">(</span><span style="color:#c2d94c;">&quot;On&quot;</span><span style="color:#bfbab0;">)</span><span style="color:#bfbab0cc;">;</span><span style="color:#bfbab0;">
+ }</span><span style="color:#bfbab0;">
+    </span><span style="font-style:italic;color:#5c6773;">// Celsius&#39;ta sıcaklık değerlerini hesaplar</span><span style="font-style:italic;color:#5c6773;">
+    </span><span style="color:#ff7733;">float</span><span style="color:#bfbab0;"> hic </span><span style="color:#f29668;">=</span><span style="color:#bfbab0;"> dht</span><span style="color:#f29668;">.</span><span style="color:#ffb454;">computeHeatIndex</span><span style="color:#bfbab0;">(t</span><span style="color:#bfbab0cc;">,</span><span style="color:#bfbab0;"> h</span><span style="color:#bfbab0cc;">, </span><span style="color:#f29718;">false</span><span style="color:#bfbab0;">)</span><span style="color:#bfbab0cc;">;</span><span style="color:#bfbab0;">
+    </span><span style="color:#ff7733;">static char</span><span style="color:#bfbab0;"> temperatureTemp[</span><span style="color:#f29718;">7</span><span style="color:#bfbab0;">]</span><span style="color:#bfbab0cc;">;</span><span style="color:#bfbab0;">
+    </span><span style="color:#ffb454;">dtostrf</span><span style="color:#bfbab0;">(hic</span><span style="color:#bfbab0cc;">, </span><span style="color:#f29718;">6</span><span style="color:#bfbab0cc;">, </span><span style="color:#f29718;">2</span><span style="color:#bfbab0cc;">,</span><span style="color:#bfbab0;"> temperatureTemp)</span><span style="color:#bfbab0cc;">;</span><span style="color:#bfbab0;">
+    </span><span style="color:#bfbab0;">
+    </span><span style="font-style:italic;color:#5c6773;">// Fahrenhayt&#39;ta sıcaklık değerlerini hesaplamak için </span><span style="font-style:italic;color:#5c6773;">
+    // float hif = dht.computeHeatIndex(f, h);</span><span style="font-style:italic;color:#5c6773;">
+    // static char temperatureTemp[7];</span><span style="font-style:italic;color:#5c6773;">
+    // dtostrf(hic, 6, 2, temperatureTemp);</span><span style="font-style:italic;color:#5c6773;">
+    </span><span style="color:#bfbab0;">
+    </span><span style="color:#ff7733;">static char</span><span style="color:#bfbab0;"> humidityTemp[</span><span style="color:#f29718;">7</span><span style="color:#bfbab0;">]</span><span style="color:#bfbab0cc;">;</span><span style="color:#bfbab0;">
+    </span><span style="color:#ffb454;">dtostrf</span><span style="color:#bfbab0;">(h</span><span style="color:#bfbab0cc;">, </span><span style="color:#f29718;">6</span><span style="color:#bfbab0cc;">, </span><span style="color:#f29718;">2</span><span style="color:#bfbab0cc;">,</span><span style="color:#bfbab0;"> humidityTemp)</span><span style="color:#bfbab0cc;">;</span><span style="color:#bfbab0;">
+</span><span style="color:#bfbab0;">
+    </span><span style="font-style:italic;color:#5c6773;">// Sıcaklık ve Nem değerlerini yayınlar</span><span style="font-style:italic;color:#5c6773;">
+</span><span style="color:#bfbab0;">    client</span><span style="color:#f29668;">.</span><span style="color:#ffb454;">publish</span><span style="color:#bfbab0;">(</span><span style="color:#c2d94c;">&quot;/esp8266/temperature&quot;</span><span style="color:#bfbab0cc;">,</span><span style="color:#bfbab0;"> temperatureTemp)</span><span style="color:#bfbab0cc;">;</span><span style="color:#bfbab0;">
+    client</span><span style="color:#f29668;">.</span><span style="color:#ffb454;">publish</span><span style="color:#bfbab0;">(</span><span style="color:#c2d94c;">&quot;/esp8266/humidity&quot;</span><span style="color:#bfbab0cc;">,</span><span style="color:#bfbab0;"> humidityTemp)</span><span style="color:#bfbab0cc;">;</span><span style="color:#bfbab0;">
+    </span><span style="color:#bfbab0;">
+    Serial</span><span style="color:#f29668;">.</span><span style="color:#ffb454;">print</span><span style="color:#bfbab0;">(</span><span style="color:#c2d94c;">&quot;Humidity: &quot;</span><span style="color:#bfbab0;">)</span><span style="color:#bfbab0cc;">;</span><span style="color:#bfbab0;">
+    Serial</span><span style="color:#f29668;">.</span><span style="color:#ffb454;">print</span><span style="color:#bfbab0;">(h)</span><span style="color:#bfbab0cc;">;</span><span style="color:#bfbab0;">
+    Serial</span><span style="color:#f29668;">.</span><span style="color:#ffb454;">print</span><span style="color:#bfbab0;">(</span><span style="color:#c2d94c;">&quot; %</span><span style="color:#95e6cb;">\t</span><span style="color:#c2d94c;"> Temperature: &quot;</span><span style="color:#bfbab0;">)</span><span style="color:#bfbab0cc;">;</span><span style="color:#bfbab0;">
+    Serial</span><span style="color:#f29668;">.</span><span style="color:#ffb454;">print</span><span style="color:#bfbab0;">(t)</span><span style="color:#bfbab0cc;">;</span><span style="color:#bfbab0;">
+    Serial</span><span style="color:#f29668;">.</span><span style="color:#ffb454;">print</span><span style="color:#bfbab0;">(</span><span style="color:#c2d94c;">&quot; *C &quot;</span><span style="color:#bfbab0;">)</span><span style="color:#bfbab0cc;">;</span><span style="color:#bfbab0;">
+    Serial</span><span style="color:#f29668;">.</span><span style="color:#ffb454;">print</span><span style="color:#bfbab0;">(f)</span><span style="color:#bfbab0cc;">;</span><span style="color:#bfbab0;">
+    Serial</span><span style="color:#f29668;">.</span><span style="color:#ffb454;">print</span><span style="color:#bfbab0;">(</span><span style="color:#c2d94c;">&quot; *F</span><span style="color:#95e6cb;">\t</span><span style="color:#c2d94c;"> Heat index: &quot;</span><span style="color:#bfbab0;">)</span><span style="color:#bfbab0cc;">;</span><span style="color:#bfbab0;">
+    Serial</span><span style="color:#f29668;">.</span><span style="color:#ffb454;">print</span><span style="color:#bfbab0;">(hic)</span><span style="color:#bfbab0cc;">;</span><span style="color:#bfbab0;">
+    Serial</span><span style="color:#f29668;">.</span><span style="color:#ffb454;">println</span><span style="color:#bfbab0;">(</span><span style="color:#c2d94c;">&quot; *C &quot;</span><span style="color:#bfbab0;">)</span><span style="color:#bfbab0cc;">;</span><span style="color:#bfbab0;">
+    </span><span style="font-style:italic;color:#5c6773;">// Serial.print(hif);</span><span style="font-style:italic;color:#5c6773;">
+    // Serial.println(&quot; *F&quot;);</span><span style="font-style:italic;color:#5c6773;">
+  </span><span style="color:#bfbab0;">}</span><span style="color:#bfbab0;">
+</span><span style="color:#ff3333;">}</span><span style="color:#bfbab0;">
+</span></pre>
+<p><strong>Bu proje için kullandığımız şematik ise şöyle:</strong></p>
+<p><img src="/storage/uploads/%C5%9EematikBa%C4%9Flant%C4%B1lar.png" alt="Alt text" /></p>
+<p><strong>Kullanacağımız malzemeler ise:</strong></p>
+<ul>
+<li>1x ESP8266 12E </li>
+<li>1x DHT22 Sensör </li>
+<li>1x 4700 Ohm Direnç</li>
+<li>2x470 Ohm Direnç</li>
+<li>2x adet LED</li>
+</ul>
+<p><strong>Raspberry Pi web sunucunuzu başlatmak için app.py dosyasını içeren klasöre geçtim:</strong></p>
+<pre style="background-color:#0f1419;">
+<span style="color:#ffb454;">pi@raspberrypi:</span><span style="font-style:italic;color:#39bae6;">~</span><span style="color:#ffb454;">/web-server/templates</span><span style="color:#bfbab0;"> $ cd ..</span><span style="color:#bfbab0;">
+</span></pre>
+<p><strong>Ardından, aşağıdaki komutu çalıştırdım:</strong></p>
+<pre style="background-color:#0f1419;">
+<span style="color:#ffb454;">pi@raspberrypi:</span><span style="font-style:italic;color:#39bae6;">~</span><span style="color:#ffb454;">/web-server</span><span style="color:#bfbab0;"> $ sudo python app.py</span><span style="color:#bfbab0;">
+</span></pre>
+<p><strong>IP adresimi girerek tarayıcımda Raspberry Pi'mi açtım:</strong></p>
+<p><img src="/storage/uploads/Sonu%C3%A7.png" alt="Alt text" /></p>
+<p>Github dosyasına <strong><a href="https://github.com/fatihawk/MQTT-Protokolu-ile-RaspberryPi-Uygulamasi">buradan</a></strong> ulaşabilirsiniz.</p>
+
+</div>
+
+Anahtarlar :
+
+<a href="#"><span class="badge badge-primary">DHT22</span></a>
+
+<a href="#"><span class="badge badge-primary">MQTT</span></a>
+
+<a href="#"><span class="badge badge-primary">RaspberryPi</span></a>
+
+<a href="#"><span class="badge badge-primary">NodeMCU</span></a>
+
+<a href="#"><span class="badge badge-primary">Uygulama</span></a>
+
+
+<div class="row pt-3 pb-3">
+  <div class="col-auto mr-auto">
+    
+  </div>
+  <div class="col-auto ml-auto">
+    
+  </div>
+</div>
+<div id="disqus_thread"></div>
+
+    </main>
+  </div>
+</body>
+</html>

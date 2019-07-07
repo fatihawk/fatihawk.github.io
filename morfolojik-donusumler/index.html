@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta http-equiv="content-type" content="text/html; charset=utf-8">
+
+  <!-- Enable responsiveness on mobile devices-->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
+
+  <title>
+Morfolojik dönüşümler - FATİH ŞAHİN
+</title>
+
+  <!-- CSS -->
+  <link rel="stylesheet" href="https:&#x2F;&#x2F;fatih.sahin.dev&#x2F;app.css">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Fira+Mono|Material+Icons">
+
+  
+
+  
+  
+</head>
+
+<body>
+  <div id="app" class="container p-md-5">
+    <nav class="navbar navbar-expand-lg navbar-dark">
+      <a class="navbar-brand mb-0 h1" href="/">FATİH ŞAHİN</a>
+      <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarMenu"
+        aria-controls="navbarMenu" aria-expanded="false" aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="navbarMenu">
+        <div class="navbar-nav mr-auto">
+          <a class="nav-item nav-link" href="/page/hakkimda">Hakkımda</a>
+        </div>
+        <!-- <div class="navbar-nav">
+          <a class="nav-item nav-link" href="en">English</a>
+          <a class="nav-item nav-link" href="tr">Türkçe</a>
+        </div> -->
+      </div>
+    </nav>
+
+    <main class="p-3 main-content">
+      
+<h1 class="pt-3">Morfolojik dönüşümler</h1>
+<span class="dates">19.10.2017</span>
+<div class="pt-3 post-content">
+  <p>Morfolojik dönüşümler, görüntü şekline dayalı basit işlemlerdir.</p>
+<p>Normalde ikili görüntülerde gerçekleştirilir.</p>
+<p>İki girdiye ihtiyaç duyuyor, biri bizim orijinal görüntümüz, ikincisi ise işlemin nasıl yapılacağına karar veren yapılandırma elemanı veya çekirdeği(kernel).</p>
+<p>İki temel morfolojik operatör vardır.Bunlar, Erozyon ve Dilatasyondur(Genişleme).Daha sonra Açılış(Opening), Kapanış(Closing), Gradyan vb. Değişken formları da sonradan devreye girer.</p>
+<p><strong>1)Erozyon</strong></p>
+<p>Temel erozyon fikri tıpkı toprak erozyonu gibidir, ön plan nesnesinin sınırlarını aşındırır. (Her zaman ön planı beyaz tutmaya çalışmak gerekir.)</p>
+<p>Orijinal görüntüdeki bir piksel (1 veya 0) yalnızca çekirdeğin altındaki tüm pikseller 1 ise 1 olarak kabul edilir, aksi takdirde aşınır. (Sıfır yapılır.)</p>
+<p>Burada gerçekleşen, sınırın yakınındaki tüm pikseller çekirdeğin boyutuna bağlı olarak atılır.</p>
+<p>Böylece görüntüdeki ön plan nesnesinin kalınlığı veya boyutu azalır veya yalnızca beyaz bölge azalır.</p>
+<p>Küçük beyaz sesleri gidermek, bağlı iki nesneyi ayırmak vb. için kullanışlıdır. </p>
+<p><strong>Örnek kod:</strong></p>
+<pre style="background-color:#0f1419;">
+<span style="color:#ff7733;">import </span><span style="color:#bfbab0;">cv2</span><span style="color:#bfbab0;">
+</span><span style="color:#ff7733;">import </span><span style="color:#bfbab0;">numpy </span><span style="color:#ff7733;">as </span><span style="color:#bfbab0;">np</span><span style="color:#bfbab0;">
+</span><span style="color:#bfbab0;">
+img </span><span style="color:#f29668;">= </span><span style="color:#bfbab0;">cv2</span><span style="color:#f29668;">.</span><span style="color:#ffb454;">imread</span><span style="color:#bfbab0;">(</span><span style="color:#c2d94c;">&#39;j.png&#39;</span><span style="color:#bfbab0cc;">,</span><span style="color:#f29718;">0</span><span style="color:#bfbab0;">)</span><span style="color:#bfbab0;">
+kernel </span><span style="color:#f29668;">= </span><span style="color:#bfbab0;">np</span><span style="color:#f29668;">.</span><span style="color:#ffb454;">ones</span><span style="color:#bfbab0;">((</span><span style="color:#f29718;">5</span><span style="color:#bfbab0cc;">,</span><span style="color:#f29718;">5</span><span style="color:#bfbab0;">)</span><span style="color:#bfbab0cc;">,</span><span style="color:#bfbab0;">np</span><span style="color:#f29668;">.</span><span style="color:#bfbab0;">uint8)</span><span style="color:#bfbab0;">
+erosion </span><span style="color:#f29668;">= </span><span style="color:#bfbab0;">cv2</span><span style="color:#f29668;">.</span><span style="color:#ffb454;">erode</span><span style="color:#bfbab0;">(img</span><span style="color:#bfbab0cc;">,</span><span style="color:#bfbab0;">kernel</span><span style="color:#bfbab0cc;">,</span><span style="color:#f29718;">iterations </span><span style="color:#f29668;">= </span><span style="color:#f29718;">1</span><span style="color:#bfbab0;">)</span><span style="color:#bfbab0;">
+</span></pre>
+<p><strong>2)Dilation(Genişleme)</strong></p>
+<p>Erozyonun tam tersidir.Burada, çekirdeğin altındaki en az bir piksel &quot;1&quot; ise, bir piksel öğesi &quot;1&quot; dir.</p>
+<p>Bu yüzden görüntüdeki beyaz bölgeyi arttırır veya ön plandaki nesnenin boyutu artar.</p>
+<p>Normal olarak, gürültü giderme gibi durumlarda erozyonu dilatasyon izler.</p>
+<p>Çünkü erozyon beyaz sesleri giderir, ancak aynı zamanda nesnemizi daraltır.</p>
+<p>Bu yüzden Dilation ile genişletiyoruz.</p>
+<p><strong>Örnek kod:</strong></p>
+<pre style="background-color:#0f1419;">
+<span style="color:#bfbab0;">dilation </span><span style="color:#f29668;">= </span><span style="color:#bfbab0;">cv2</span><span style="color:#f29668;">.</span><span style="color:#ffb454;">dilate</span><span style="color:#bfbab0;">(img</span><span style="color:#bfbab0cc;">,</span><span style="color:#bfbab0;">kernel</span><span style="color:#bfbab0cc;">,</span><span style="color:#f29718;">iterations </span><span style="color:#f29668;">= </span><span style="color:#f29718;">1</span><span style="color:#bfbab0;">)</span><span style="color:#bfbab0;">
+</span></pre>
+<p><strong>3)Opening</strong></p>
+<p>Açılış, başka bir erozyon çeşididir ve ardından dilatasyon olur.</p>
+<p>Yukarıda açıkladığımız gibi, gürültüyü gidermede faydalıdır.</p>
+<p>OpenCV'de bu işlem için <code>cv2.morphologyEx()</code> fonksiyonunu kullanıyoruz.</p>
+<p><strong>Örnek kod:</strong></p>
+<pre style="background-color:#0f1419;">
+<span style="color:#bfbab0;">opening </span><span style="color:#f29668;">= </span><span style="color:#bfbab0;">cv2</span><span style="color:#f29668;">.</span><span style="color:#ffb454;">morphologyEx</span><span style="color:#bfbab0;">(img</span><span style="color:#bfbab0cc;">, </span><span style="color:#bfbab0;">cv2</span><span style="color:#f29668;">.</span><span style="color:#bfbab0;">MORPH_OPEN</span><span style="color:#bfbab0cc;">, </span><span style="color:#bfbab0;">kernel)</span><span style="color:#bfbab0;">
+</span></pre>
+<p><strong>4)Closing</strong></p>
+<p>Closing, Açılış, Dilasyon ve Erozyonun tersidir.</p>
+<p>Ön plan nesnelerinin içindeki küçük deliklerin veya nesnedeki küçük siyah noktaların kapatılmasında kullanışlıdır.</p>
+<p><strong>Örnek kod:</strong></p>
+<pre style="background-color:#0f1419;">
+<span style="color:#bfbab0;">closing </span><span style="color:#f29668;">= </span><span style="color:#bfbab0;">cv2</span><span style="color:#f29668;">.</span><span style="color:#ffb454;">morphologyEx</span><span style="color:#bfbab0;">(img</span><span style="color:#bfbab0cc;">, </span><span style="color:#bfbab0;">cv2</span><span style="color:#f29668;">.</span><span style="color:#bfbab0;">MORPH_CLOSE</span><span style="color:#bfbab0cc;">, </span><span style="color:#bfbab0;">kernel)</span><span style="color:#bfbab0;">
+</span></pre>
+<p><strong>5)Morfolojik Gradyan(Morphological Gradient)</strong></p>
+<p>Bir görüntünün genişlemesi ve erozyonu arasındaki farktır.</p>
+<p>Sonuçta görüntü, nesnenin ana hatları gibi görünecektir.</p>
+<p><strong>Örnek kod:</strong></p>
+<pre style="background-color:#0f1419;">
+<span style="color:#bfbab0;">gradient </span><span style="color:#f29668;">= </span><span style="color:#bfbab0;">cv2</span><span style="color:#f29668;">.</span><span style="color:#ffb454;">morphologyEx</span><span style="color:#bfbab0;">(img</span><span style="color:#bfbab0cc;">, </span><span style="color:#bfbab0;">cv2</span><span style="color:#f29668;">.</span><span style="color:#bfbab0;">MORPH_GRADIENT</span><span style="color:#bfbab0cc;">, </span><span style="color:#bfbab0;">kernel)</span><span style="color:#bfbab0;">
+</span></pre>
+<p><strong>6)Top Hat</strong></p>
+<p>Giriş görüntüsü ile görüntünün açılması(opening) arasındaki farktır.</p>
+<p><strong>Örnek kod:</strong></p>
+<pre style="background-color:#0f1419;">
+<span style="color:#bfbab0;">tophat </span><span style="color:#f29668;">= </span><span style="color:#bfbab0;">cv2</span><span style="color:#f29668;">.</span><span style="color:#ffb454;">morphologyEx</span><span style="color:#bfbab0;">(img</span><span style="color:#bfbab0cc;">, </span><span style="color:#bfbab0;">cv2</span><span style="color:#f29668;">.</span><span style="color:#bfbab0;">MORPH_TOPHAT</span><span style="color:#bfbab0cc;">, </span><span style="color:#bfbab0;">kernel)</span><span style="color:#bfbab0;">
+</span></pre>
+<p><strong>7)Black Hat</strong></p>
+<p>Giriş görüntüsünün kapanması(closing) ile giriş görüntüsünün arasındaki farktır.</p>
+<p><strong>Örnek kod:</strong></p>
+<pre style="background-color:#0f1419;">
+<span style="color:#bfbab0;">blackhat </span><span style="color:#f29668;">= </span><span style="color:#bfbab0;">cv2</span><span style="color:#f29668;">.</span><span style="color:#ffb454;">morphologyEx</span><span style="color:#bfbab0;">(img</span><span style="color:#bfbab0cc;">, </span><span style="color:#bfbab0;">cv2</span><span style="color:#f29668;">.</span><span style="color:#bfbab0;">MORPH_BLACKHAT</span><span style="color:#bfbab0cc;">, </span><span style="color:#bfbab0;">kernel)</span><span style="color:#bfbab0;">
+</span></pre>
+<p>**Yapılandırma Elemanı:**Numpy'nin yardımıyla bir yapılandırma öğesi oluşturabiliriz.Dikdörtgen şeklinde yapacağız.</p>
+<p>Ancak bazı durumlarda eliptik/dairesel şekilli çekirdeklere ihtiyacınız olabilir.</p>
+<p>Bu nedenle, OpenCV'nin <code>cv2.getStructuringElement()</code> fonksiyonu vardır.</p>
+<p><strong>Örnek kod:</strong></p>
+<p><strong>Dikdörgen çekirdek(Kernel)</strong></p>
+<pre style="background-color:#0f1419;">
+<span style="color:#f29668;">&gt;&gt;&gt; </span><span style="color:#bfbab0;">cv2</span><span style="color:#f29668;">.</span><span style="color:#ffb454;">getStructuringElement</span><span style="color:#bfbab0;">(cv2</span><span style="color:#f29668;">.</span><span style="color:#bfbab0;">MORPH_RECT</span><span style="color:#bfbab0cc;">,</span><span style="color:#bfbab0;">(</span><span style="color:#f29718;">5</span><span style="color:#bfbab0cc;">,</span><span style="color:#f29718;">5</span><span style="color:#bfbab0;">))</span><span style="color:#bfbab0;">
+</span><span style="color:#ffb454;">array</span><span style="color:#bfbab0;">([[</span><span style="color:#f29718;">1</span><span style="color:#bfbab0cc;">, </span><span style="color:#f29718;">1</span><span style="color:#bfbab0cc;">, </span><span style="color:#f29718;">1</span><span style="color:#bfbab0cc;">, </span><span style="color:#f29718;">1</span><span style="color:#bfbab0cc;">, </span><span style="color:#f29718;">1</span><span style="color:#bfbab0;">]</span><span style="color:#bfbab0cc;">,</span><span style="color:#bfbab0;">
+       [</span><span style="color:#f29718;">1</span><span style="color:#bfbab0cc;">, </span><span style="color:#f29718;">1</span><span style="color:#bfbab0cc;">, </span><span style="color:#f29718;">1</span><span style="color:#bfbab0cc;">, </span><span style="color:#f29718;">1</span><span style="color:#bfbab0cc;">, </span><span style="color:#f29718;">1</span><span style="color:#bfbab0;">]</span><span style="color:#bfbab0cc;">,</span><span style="color:#bfbab0;">
+       [</span><span style="color:#f29718;">1</span><span style="color:#bfbab0cc;">, </span><span style="color:#f29718;">1</span><span style="color:#bfbab0cc;">, </span><span style="color:#f29718;">1</span><span style="color:#bfbab0cc;">, </span><span style="color:#f29718;">1</span><span style="color:#bfbab0cc;">, </span><span style="color:#f29718;">1</span><span style="color:#bfbab0;">]</span><span style="color:#bfbab0cc;">,</span><span style="color:#bfbab0;">
+       [</span><span style="color:#f29718;">1</span><span style="color:#bfbab0cc;">, </span><span style="color:#f29718;">1</span><span style="color:#bfbab0cc;">, </span><span style="color:#f29718;">1</span><span style="color:#bfbab0cc;">, </span><span style="color:#f29718;">1</span><span style="color:#bfbab0cc;">, </span><span style="color:#f29718;">1</span><span style="color:#bfbab0;">]</span><span style="color:#bfbab0cc;">,</span><span style="color:#bfbab0;">
+       [</span><span style="color:#f29718;">1</span><span style="color:#bfbab0cc;">, </span><span style="color:#f29718;">1</span><span style="color:#bfbab0cc;">, </span><span style="color:#f29718;">1</span><span style="color:#bfbab0cc;">, </span><span style="color:#f29718;">1</span><span style="color:#bfbab0cc;">, </span><span style="color:#f29718;">1</span><span style="color:#bfbab0;">]]</span><span style="color:#bfbab0cc;">, </span><span style="color:#f29718;">dtype</span><span style="color:#f29668;">=</span><span style="color:#bfbab0;">uint8)</span><span style="color:#bfbab0;">
+</span></pre>
+<p><strong>Eliptik çekirdek(Kernel)</strong></p>
+<pre style="background-color:#0f1419;">
+<span style="color:#f29668;">&gt;&gt;&gt; </span><span style="color:#bfbab0;">cv2</span><span style="color:#f29668;">.</span><span style="color:#ffb454;">getStructuringElement</span><span style="color:#bfbab0;">(cv2</span><span style="color:#f29668;">.</span><span style="color:#bfbab0;">MORPH_ELLIPSE</span><span style="color:#bfbab0cc;">,</span><span style="color:#bfbab0;">(</span><span style="color:#f29718;">5</span><span style="color:#bfbab0cc;">,</span><span style="color:#f29718;">5</span><span style="color:#bfbab0;">))</span><span style="color:#bfbab0;">
+</span><span style="color:#ffb454;">array</span><span style="color:#bfbab0;">([[</span><span style="color:#f29718;">0</span><span style="color:#bfbab0cc;">, </span><span style="color:#f29718;">0</span><span style="color:#bfbab0cc;">, </span><span style="color:#f29718;">1</span><span style="color:#bfbab0cc;">, </span><span style="color:#f29718;">0</span><span style="color:#bfbab0cc;">, </span><span style="color:#f29718;">0</span><span style="color:#bfbab0;">]</span><span style="color:#bfbab0cc;">,</span><span style="color:#bfbab0;">
+       [</span><span style="color:#f29718;">1</span><span style="color:#bfbab0cc;">, </span><span style="color:#f29718;">1</span><span style="color:#bfbab0cc;">, </span><span style="color:#f29718;">1</span><span style="color:#bfbab0cc;">, </span><span style="color:#f29718;">1</span><span style="color:#bfbab0cc;">, </span><span style="color:#f29718;">1</span><span style="color:#bfbab0;">]</span><span style="color:#bfbab0cc;">,</span><span style="color:#bfbab0;">
+       [</span><span style="color:#f29718;">1</span><span style="color:#bfbab0cc;">, </span><span style="color:#f29718;">1</span><span style="color:#bfbab0cc;">, </span><span style="color:#f29718;">1</span><span style="color:#bfbab0cc;">, </span><span style="color:#f29718;">1</span><span style="color:#bfbab0cc;">, </span><span style="color:#f29718;">1</span><span style="color:#bfbab0;">]</span><span style="color:#bfbab0cc;">,</span><span style="color:#bfbab0;">
+       [</span><span style="color:#f29718;">1</span><span style="color:#bfbab0cc;">, </span><span style="color:#f29718;">1</span><span style="color:#bfbab0cc;">, </span><span style="color:#f29718;">1</span><span style="color:#bfbab0cc;">, </span><span style="color:#f29718;">1</span><span style="color:#bfbab0cc;">, </span><span style="color:#f29718;">1</span><span style="color:#bfbab0;">]</span><span style="color:#bfbab0cc;">,</span><span style="color:#bfbab0;">
+       [</span><span style="color:#f29718;">0</span><span style="color:#bfbab0cc;">, </span><span style="color:#f29718;">0</span><span style="color:#bfbab0cc;">, </span><span style="color:#f29718;">1</span><span style="color:#bfbab0cc;">, </span><span style="color:#f29718;">0</span><span style="color:#bfbab0cc;">, </span><span style="color:#f29718;">0</span><span style="color:#bfbab0;">]]</span><span style="color:#bfbab0cc;">, </span><span style="color:#f29718;">dtype</span><span style="color:#f29668;">=</span><span style="color:#bfbab0;">uint8)</span><span style="color:#bfbab0;">
+</span></pre>
+<p><strong>Çapraz şekilli çekirdek( Kernel)</strong></p>
+<pre style="background-color:#0f1419;">
+<span style="color:#f29668;">&gt;&gt;&gt; </span><span style="color:#bfbab0;">cv2</span><span style="color:#f29668;">.</span><span style="color:#ffb454;">getStructuringElement</span><span style="color:#bfbab0;">(cv2</span><span style="color:#f29668;">.</span><span style="color:#bfbab0;">MORPH_CROSS</span><span style="color:#bfbab0cc;">,</span><span style="color:#bfbab0;">(</span><span style="color:#f29718;">5</span><span style="color:#bfbab0cc;">,</span><span style="color:#f29718;">5</span><span style="color:#bfbab0;">))</span><span style="color:#bfbab0;">
+</span><span style="color:#ffb454;">array</span><span style="color:#bfbab0;">([[</span><span style="color:#f29718;">0</span><span style="color:#bfbab0cc;">, </span><span style="color:#f29718;">0</span><span style="color:#bfbab0cc;">, </span><span style="color:#f29718;">1</span><span style="color:#bfbab0cc;">, </span><span style="color:#f29718;">0</span><span style="color:#bfbab0cc;">, </span><span style="color:#f29718;">0</span><span style="color:#bfbab0;">]</span><span style="color:#bfbab0cc;">,</span><span style="color:#bfbab0;">
+       [</span><span style="color:#f29718;">0</span><span style="color:#bfbab0cc;">, </span><span style="color:#f29718;">0</span><span style="color:#bfbab0cc;">, </span><span style="color:#f29718;">1</span><span style="color:#bfbab0cc;">, </span><span style="color:#f29718;">0</span><span style="color:#bfbab0cc;">, </span><span style="color:#f29718;">0</span><span style="color:#bfbab0;">]</span><span style="color:#bfbab0cc;">,</span><span style="color:#bfbab0;">
+       [</span><span style="color:#f29718;">1</span><span style="color:#bfbab0cc;">, </span><span style="color:#f29718;">1</span><span style="color:#bfbab0cc;">, </span><span style="color:#f29718;">1</span><span style="color:#bfbab0cc;">, </span><span style="color:#f29718;">1</span><span style="color:#bfbab0cc;">, </span><span style="color:#f29718;">1</span><span style="color:#bfbab0;">]</span><span style="color:#bfbab0cc;">,</span><span style="color:#bfbab0;">
+       [</span><span style="color:#f29718;">0</span><span style="color:#bfbab0cc;">, </span><span style="color:#f29718;">0</span><span style="color:#bfbab0cc;">, </span><span style="color:#f29718;">1</span><span style="color:#bfbab0cc;">, </span><span style="color:#f29718;">0</span><span style="color:#bfbab0cc;">, </span><span style="color:#f29718;">0</span><span style="color:#bfbab0;">]</span><span style="color:#bfbab0cc;">,</span><span style="color:#bfbab0;">
+       [</span><span style="color:#f29718;">0</span><span style="color:#bfbab0cc;">, </span><span style="color:#f29718;">0</span><span style="color:#bfbab0cc;">, </span><span style="color:#f29718;">1</span><span style="color:#bfbab0cc;">, </span><span style="color:#f29718;">0</span><span style="color:#bfbab0cc;">, </span><span style="color:#f29718;">0</span><span style="color:#bfbab0;">]]</span><span style="color:#bfbab0cc;">, </span><span style="color:#f29718;">dtype</span><span style="color:#f29668;">=</span><span style="color:#bfbab0;">uint8)</span><span style="color:#bfbab0;">
+</span></pre>
+</div>
+
+Anahtarlar :
+
+<a href="#"><span class="badge badge-primary">Erozyon</span></a>
+
+<a href="#"><span class="badge badge-primary">Dilation</span></a>
+
+<a href="#"><span class="badge badge-primary">Opening</span></a>
+
+<a href="#"><span class="badge badge-primary">Closing</span></a>
+
+<a href="#"><span class="badge badge-primary">MorfolojikGradyan</span></a>
+
+<a href="#"><span class="badge badge-primary">TopHat</span></a>
+
+<a href="#"><span class="badge badge-primary">BlackHat</span></a>
+
+
+<div class="row pt-3 pb-3">
+  <div class="col-auto mr-auto">
+    
+  </div>
+  <div class="col-auto ml-auto">
+    
+  </div>
+</div>
+<div id="disqus_thread"></div>
+
+    </main>
+  </div>
+</body>
+</html>
